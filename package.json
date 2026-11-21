@@ -1,0 +1,14 @@
+{
+  "name": "notchlet-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Documentation site for Notchlet: platform, MCP, CLI, skills, and the development workflow.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

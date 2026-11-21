@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skills · Notchlet Docs</title>
+<meta name="description" content="Notchlet skills: super, plan, implement, review, deliver, platform, mcp, and init. Install, update, route, and generate client guidance.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Reference<span>/</span>Skills</p>
+      <p class="eyebrow">Reference</p>
+      <h1>Skills</h1>
+      <p class="lead">Skills are model-agnostic playbooks that teach a coding agent how to use Notchlet correctly: which commands to run, which state to read first, what evidence to record, and what never to do without authorization.</p>
+
+      <h2 id="what">What a skill is</h2>
+      <p>A skill is a directory containing a <code>SKILL.md</code> with YAML frontmatter (<code>name</code>, <code>description</code>) and a short operating guide. Clients that support skills load the matching guide when a request routes to it; clients invoke them by slash command or natural language.</p>
+      <ul>
+        <li>Skills are guidance, not a runtime. They call the CLI and MCP tools that actually exist.</li>
+        <li>They are written to be resumed: read current state, reuse the workspace and change, and avoid replaying setup or planning.</li>
+        <li>They preserve authorization boundaries and evidence rules rather than optimizing for a “done” message.</li>
+      </ul>
+
+      <h2 id="install">Install and update</h2>
+      <p>The CLI installs generated guidance into the client's skill directory:</p>
+<pre><code>notchlet client init opencode --apply     # .opencode/skills
+notchlet client init claude --apply       # .claude/skills
+notchlet client init agent --apply        # .agents/skills
+
+notchlet client update opencode --apply   # refresh without touching MCP config
+notchlet client update claude --apply</code></pre>
+      <table class="table-wrap">
+        <thead><tr><th>Target</th><th>Directory</th><th>Available through</th></tr></thead>
+        <tbody>
+          <tr><td><code>opencode</code></td><td><code>.opencode/skills</code></td><td><code>client</code>, <code>init --client</code>, <code>mcp configure</code></td></tr>
+          <tr><td><code>claude</code></td><td><code>.claude/skills</code></td><td><code>client</code>, <code>init --client</code>, <code>mcp configure</code></td></tr>
+          <tr><td><code>agent</code></td><td><code>.agents/skills</code></td><td><code>client</code> only</td></tr>
+        </tbody>
+      </table>
+      <p><code>notchlet init --client opencode|claude</code> installs skills and configures the local MCP server in one step for offline work. Use <code>notchlet client update</code> to refresh guidance without rewriting MCP configuration.</p>
+      <div class="callout info">
+        <span class="callout-title">Two installation paths</span>
+        <p>The Notchlet skills repository can also be installed with the general skills tooling (for example <code>npx skills add</code> against the repository). CLI-installed guidance is generated and syntax-checked against the CLI release; repository installs track the latest committed skills.</p>
+      </div>
+
+      <h2 id="catalog">The eight skills</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Skill</th><th>Routes when</th><th>Produces</th></tr></thead>
+          <tbody>
+            <tr><td><code>notchlet-super</code></td><td>Any Notchlet development request; decides the smallest relevant action from current state.</td><td>Routing to explore, plan, resume, revise, implement, review, or deliver; state-aware MCP tool guidance.</td></tr>
+            <tr><td><code>notchlet-plan</code></td><td>Creating or refining epics, stories, tasks, acceptance criteria, dependencies, and readiness.</td><td>A verified hierarchy or local change plan with Definition of Ready.</td></tr>
+            <tr><td><code>notchlet-implement</code></td><td>A planned item or change is ready for code changes and verification.</td><td>Implemented behavior, focused checks, evidence, a checkpoint, and truthful status.</td></tr>
+            <tr><td><code>notchlet-review</code></td><td>Implementation is complete and a PR/MR needs approval or change requests.</td><td>Coverage, quality, testing, and backlog-consistency review; approve or specific feedback.</td></tr>
+            <tr><td><code>notchlet-deliver</code></td><td>Work passed review and needs evidence, synchronization, status, or issue updates.</td><td>Delivery evidence, verified merge state, updated status, explicit partial-failure reporting.</td></tr>
+            <tr><td><code>notchlet-platform</code></td><td>Resolving products, backlog items, documents, or available MCP operations.</td><td>Confirmed product and item identity, bounded context, and capability limits.</td></tr>
+            <tr><td><code>notchlet-mcp</code></td><td>MCP tools are missing, unauthenticated, or misconfigured.</td><td>A working bridge, remote, or offline local connection with verified status.</td></tr>
+            <tr><td><code>notchlet-init</code></td><td>Workspace initialization or context-file setup is explicitly requested.</td><td>A local workspace and guidance files; legacy compatibility skill.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="routing">Intent routing</h2>
+      <p><code>notchlet-super</code> routes from the request and the current workspace state:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Intent</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>Explore or investigate</td><td>Read source, tests, docs, or bounded MCP context. No init, writes, transitions, sync, or checkpoints unless asked.</td></tr>
+            <tr><td>Plan only</td><td>Use <code>notchlet-plan</code>; do not implement or deliver. A local change plan can be refined without starting tasks.</td></tr>
+            <tr><td>Continue or resume</td><td><code>notchlet status</code> and <code>instructions --action resume</code>; continue eligible tasks without recreating the plan.</td></tr>
+            <tr><td>Revise requirements or design</td><td><code>instructions --action revise</code>; preserve stable IDs and progress, then revalidate.</td></tr>
+            <tr><td>Implement or verify</td><td>Use <code>notchlet-implement</code> plus the repository's real test commands.</td></tr>
+            <tr><td>Review</td><td>Use <code>notchlet-review</code>; distinguish self-recorded checks from independent review.</td></tr>
+            <tr><td>Deliver</td><td>Use <code>notchlet-deliver</code>; evaluate readiness, then update state only as authorized.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="invoking">Invoking skills</h2>
+      <p>Clients that expose skills usually accept a slash command matching the skill name. Others route from the description:</p>
+<pre><code>/notchlet-super implement NOT-123
+
+# or, conversationally:
+Use the notchlet workflow to implement the search endpoint.
+Resume the change I started yesterday; do not re-plan it.
+Review the open PR against its acceptance criteria.</code></pre>
+      <p>A good request names the outcome and, when known, the backlog key or change name. “Continue” is sufficient when state already exists — the router reads it instead of asking you to re-explain.</p>
+
+      <h2 id="generated">Generated guidance</h2>
+      <p>CLI-bundled guidance is generated from the skills repository:</p>
+      <ol class="steps">
+        <li>
+          <h4>Read the source skills</h4>
+          <p>The generator reads every <code>SKILL.md</code> from the skills project.</p>
+        </li>
+        <li>
+          <h4>Validate the command surface</h4>
+          <p>Documented CLI commands are checked against the CLI implementation so guidance does not advertise commands that do not exist.</p>
+        </li>
+        <li>
+          <h4>Emit client variants</h4>
+          <p>Outputs are written per client (<code>opencode</code>, <code>claude-code</code>, <code>agent</code>) with a manifest and compatibility metadata.</p>
+        </li>
+        <li>
+          <h4>Test and bundle</h4>
+          <p>Tests regenerate and compare outputs. Releases bundle the generated guidance, so installed clients receive it with the CLI.</p>
+        </li>
+      </ol>
+      <div class="callout warn">
+        <span class="callout-title">Release lag</span>
+        <p>Bundled guidance reflects the CLI release it shipped with. If the skills repository has newer fixes than your installed CLI, use <code>notchlet client update</code> after upgrading, or install from the repository. Check versions with <code>notchlet --version</code>.</p>
+      </div>
+
+      <h2 id="division">Division of labor</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td>Skill</td><td>Decide what workflow action fits, in what order, with which guardrails.</td></tr>
+            <tr><td>MCP</td><td>Provide authenticated, bounded platform context and authorized platform operations.</td></tr>
+            <tr><td>CLI</td><td>Own local change state, task transitions, verification, evidence, closure, and sync.</td></tr>
+            <tr><td>Repository</td><td>Provide the actual implementation and the real checks that prove it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="authoring">Writing a skill</h2>
+      <ul>
+        <li>Start with frontmatter: a short <code>name</code> and a <code>description</code> that states exactly when the skill applies.</li>
+        <li>Write an operating guide, not an essay: entry criteria, ordered actions, commands, and a checklist.</li>
+        <li>Name real commands and flags. The generator rejects guidance that references commands the CLI does not ship.</li>
+        <li>Include failure handling: pre-existing failures, missing credentials, and authorization limits.</li>
+        <li>Never include tokens, credentials, or customer data; describe environment-variable references instead.</li>
+        <li>Keep it resumable: tell the agent to read current state before recreating plans or setup.</li>
+      </ul>
+
+      <h2 id="example">Example: agent request, end to end</h2>
+<pre><code># In OpenCode with skills installed
+Use the notchlet workflow to add CSV export to the reports page.
+The backlog item is NOT-142.
+
+# Router behavior:
+# 1. notchlet-super reads workspace and item state
+# 2. notchlet-platform resolves the product and bounded context
+# 3. notchlet-plan confirms acceptance criteria and creates a local change
+# 4. notchlet-implement starts tasks, implements, and verifies with evidence
+# 5. notchlet-review checks the diff and tests
+# 6. notchlet-deliver records evidence and updates status once authorized</code></pre>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

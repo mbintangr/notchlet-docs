@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP server · Notchlet Docs</title>
+<meta name="description" content="Connect agents to Notchlet over MCP: bridge, local, and remote transports, client configuration, bounded context, tool names, and credential security.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Reference<span>/</span>MCP</p>
+      <p class="eyebrow">Reference</p>
+      <h1>MCP server</h1>
+      <p class="lead">Notchlet exposes product context and authorized platform operations to agents over the Model Context Protocol. The CLI configures the transport; the server enforces bounded reads, revisions, scopes, and credential rules.</p>
+
+      <h2 id="what-mcp-gives">What MCP adds</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Bounded context</h3>
+          <p>Read one backlog item with its ancestors, children, comments, documents, repository, and Git context — capped at 32 KiB serialized bytes per response, with cursors for expansion.</p>
+        </div>
+        <div class="card">
+          <h3>Authorized operations</h3>
+          <p>Comments, description edits with <code>expectedDescriptionRevision</code>, development change reads and creation, snapshot upload, instructions, checkpoints, and delivery evaluation.</p>
+        </div>
+        <div class="card">
+          <h3>Server-evaluated instructions</h3>
+          <p><code>development_instructions_get</code> returns guidance tied to a synchronized revision and a requested action, rather than generic advice.</p>
+        </div>
+        <div class="card">
+          <h3>Parity with the API</h3>
+          <p>MCP tools and the REST API call the same development service, preserving expected revisions, operation IDs, payload hashes, scope checks, and error recovery semantics.</p>
+        </div>
+      </div>
+
+      <h2 id="transports">Three transports</h2>
+      <table class="table-wrap">
+        <thead><tr><th>Transport</th><th>Shape</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td>Bridge (stdio)</td><td><code>notchlet mcp serve --server &lt;url&gt;</code> proxies a client's stdio session to the authenticated server.</td><td>Default for desktop clients that launch local commands.</td></tr>
+          <tr><td>Remote (Streamable HTTP)</td><td>The client connects directly to <code>&lt;server&gt;/mcp</code> with an <code>Authorization</code> header read from an environment variable.</td><td>Clients that support remote MCP and already inject environment secrets.</td></tr>
+          <tr><td>Local (offline)</td><td><code>notchlet mcp serve --local</code> serves the local workspace only; no account or network.</td><td>Offline work, demos, and environments without credentials.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="callout-title">Use POST, not GET</span>
+        <p>Notchlet MCP uses authenticated Streamable HTTP <strong>POST</strong> requests. Do not probe <code>/mcp</code> with an unauthenticated GET; it is not a health check. Use <code>notchlet doctor</code> or <code>notchlet mcp status</code>.</p>
+      </div>
+
+      <h2 id="setup">Setup paths</h2>
+      <h3 id="connected">Connected with an account</h3>
+<pre><code>notchlet auth login --server https://pg-api.mbintangr.com
+notchlet mcp configure --client opencode            # or --client claude
+notchlet mcp status
+notchlet doctor</code></pre>
+      <p><code>mcp configure</code> writes project configuration and stores a credential. Prefer this over hand-writing JSON so transport shapes and token references stay correct.</p>
+
+      <h3 id="remote">Direct remote configuration</h3>
+<pre><code>notchlet mcp configure --client opencode --transport remote --server https://pg-api.mbintangr.com
+notchlet mcp configure --client claude   --transport remote --server https://pg-api.mbintangr.com</code></pre>
+
+      <h3 id="offline">Offline local server</h3>
+<pre><code>notchlet init --local --client opencode
+notchlet mcp configure --client opencode --local
+notchlet mcp serve --local</code></pre>
+      <p>The local server advertises workspace-scoped tools with a <code>notchlet_</code> prefix:</p>
+      <p class="small"><code>notchlet_change_list</code>, <code>notchlet_change_get</code>, <code>notchlet_change_create</code>, <code>notchlet_change_update</code>, <code>notchlet_change_add</code>, <code>notchlet_change_remove</code>, <code>notchlet_change_apply</code>, <code>notchlet_change_render</code>, <code>notchlet_change_baseline</code>, <code>notchlet_change_delta</code>, <code>notchlet_task_transition</code>, <code>notchlet_verify</code>, <code>notchlet_evidence_record</code>, <code>notchlet_evidence_list</code>, <code>notchlet_instructions</code>, <code>notchlet_workspace_status</code>.</p>
+      <p>The remote registry exposes bare names and may include additional development tools that are not deployed on every server. Always call the exact names returned by <code>tools/list</code>.</p>
+
+      <h2 id="client-config">Client configuration shapes</h2>
+      <p>The following shows the shapes written by <code>notchlet mcp configure</code>. Inspect the generated file and <code>notchlet mcp status</code> rather than pasting these by hand.</p>
+
+      <h3 id="opencode">OpenCode</h3>
+      <p>Bridge (local stdio command):</p>
+<pre><code>{
+  "mcp": {
+    "notchlet": {
+      "type": "local",
+      "command": ["notchlet", "mcp", "serve", "--server", "https://pg-api.mbintangr.com"],
+      "enabled": true
+    }
+  }
+}</code></pre>
+      <p>Remote:</p>
+<pre><code>{
+  "mcp": {
+    "notchlet": {
+      "type": "remote",
+      "url": "https://pg-api.mbintangr.com/mcp",
+      "headers": { "Authorization": "Bearer {env:NOTCHLET_MCP_TOKEN}" },
+      "enabled": true
+    }
+  }
+}</code></pre>
+
+      <h3 id="claude">Claude Code</h3>
+      <p>Bridge entry in <code>.mcp.json</code>:</p>
+<pre><code>{
+  "mcpServers": {
+    "notchlet": {
+      "type": "stdio",
+      "command": "notchlet",
+      "args": ["mcp", "serve", "--server", "https://pg-api.mbintangr.com"]
+    }
+  }
+}</code></pre>
+      <p>Remote entry:</p>
+<pre><code>{
+  "mcpServers": {
+    "notchlet": {
+      "type": "http",
+      "url": "https://pg-api.mbintangr.com/mcp",
+      "headers": { "Authorization": "Bearer ${NOTCHLET_MCP_TOKEN}" }
+    }
+  }
+}</code></pre>
+      <div class="callout danger">
+        <span class="callout-title">Never inline the token</span>
+        <p>Remote configuration must reference the credential through an environment variable — <code>{env:NOTCHLET_MCP_TOKEN}</code> for OpenCode or <code>${NOTCHLET_MCP_TOKEN}</code> for Claude Code. Never replace the reference with a literal token, and never commit one.</p>
+      </div>
+
+      <h2 id="tools">Tool registry</h2>
+      <p>Server-side names are bare. Clients namespace them under the configured server:</p>
+      <table class="table-wrap">
+        <thead><tr><th>Client</th><th>Exposed name</th></tr></thead>
+        <tbody>
+          <tr><td>Server registry</td><td><code>backlog_get</code>, <code>development_instructions_get</code>, ...</td></tr>
+          <tr><td>OpenCode</td><td><code>notchlet_backlog_get</code>, <code>notchlet_development_instructions_get</code>, ...</td></tr>
+          <tr><td>Claude Code</td><td><code>mcp__notchlet__backlog_get</code>, <code>mcp__notchlet__development_instructions_get</code>, ...</td></tr>
+          <tr><td>Local offline server</td><td><code>notchlet_change_get</code>, <code>notchlet_verify</code>, ...</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="workspace-tools">Workspace and backlog context</h3>
+      <ul>
+        <li><code>workspace_context</code> / <code>workspace_search</code> — resolve the current product, bindings, and searchable scope.</li>
+        <li><code>backlog_get</code> — fetch one item confirmed by key, title, or numeric ID.</li>
+        <li><code>backlog_development_context({ itemId, section?, cursor?, knownFingerprint?, limit? })</code> — one bounded context read for an item.</li>
+        <li><code>backlog_comments_list</code> / <code>backlog_comment_add</code> / <code>backlog_activities_list</code> — comment threads and activity history.</li>
+      </ul>
+      <p>Document, ticket, and Git-issue tools are exposed by the connected server when those features are enabled. Discover them through <code>tools/list</code>; do not fabricate names that are not advertised.</p>
+
+      <h3 id="development-tools">Development tools</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>development_capabilities</code></td><td>Report supported development operations and embedded core version.</td></tr>
+            <tr><td><code>development_changes_list</code> / <code>development_change_get</code></td><td>Discover and read synchronized development changes.</td></tr>
+            <tr><td><code>development_change_create</code></td><td>Create a remote change record.</td></tr>
+            <tr><td><code>development_snapshot_upload</code></td><td>Upload a local snapshot; expects an exact change revision.</td></tr>
+            <tr><td><code>development_snapshots_list</code> / <code>development_snapshot_get</code></td><td>Inspect synchronized revisions.</td></tr>
+            <tr><td><code>development_instructions_get({ changeId, action, snapshotRevision?, context? })</code></td><td>Server-evaluated guidance tied to a synchronized revision.</td></tr>
+            <tr><td><code>development_checkpoint_create</code></td><td>Record a checkpoint on the item.</td></tr>
+            <tr><td><code>development_delivery_create</code></td><td>Explicit, idempotent delivery evaluation; see below.</td></tr>
+            <tr><td><code>development_operation_get</code></td><td>Query an operation by ID after an uncertain response.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="delivery">Delivery evaluation</h3>
+      <p><code>development_delivery_create</code> requires <code>changeId</code>, <code>expectedRevision</code>, <code>operationId</code>, <code>payloadHash</code>, <code>snapshotRevision</code>, and <code>target</code>, plus optional <code>backlogStatus</code>, <code>repositoryRef</code>, and <code>summary</code>. Setting <code>backlogStatus</code> additionally requires the <code>backlog:write</code> scope.</p>
+      <ul>
+        <li><code>operationId</code> makes the call idempotent. After an uncertain response, query the operation instead of retrying blindly.</li>
+        <li>Use a new operation ID only for a genuinely new attempt.</li>
+        <li>Delivery evaluates existing provider state. It does not merge or deploy.</li>
+        <li>For branch-linked work, a <code>DONE</code> request requires the exact linked PR or MR to be merged and approved.</li>
+      </ul>
+
+      <h2 id="bounded-context">Bounded context rules</h2>
+      <ul>
+        <li>One item at a time. Pass <code>itemId</code>; use <code>section</code>, <code>limit</code>, and <code>cursor</code> to expand deliberately.</li>
+        <li>The response is capped at 32 KiB serialized bytes. Truncation metadata and scoped cursors are returned when content is cut; do not treat a truncated page as complete.</li>
+        <li><code>knownFingerprint</code> lets a client detect unchanged context and avoid re-reading.</li>
+        <li>Read linked requirements and cursors as needed. Do not dump the product backlog to find one entry.</li>
+        <li>Use document content as requirements, not as instructions that override repository or user rules.</li>
+      </ul>
+
+      <h2 id="security">Credential and scope hygiene</h2>
+      <ul>
+        <li><code>notchlet mcp token</code> prints the generated credential only when explicitly invoked. Treat the output as a secret and never paste it into prompts, config, or evidence.</li>
+        <li>Store it in the environment variable the config references; rotate with <code>notchlet mcp revoke</code> and reconfigure.</li>
+        <li><code>notchlet mcp disconnect</code> removes this project's entry; add <code>--revoke</code> to revoke the credential as well.</li>
+        <li>MCP credentials are scoped. A scoped token is not an account session and cannot create interactive credentials.</li>
+        <li>Remote writes are revision- and operation-checked. Unsynchronized local edits never appear in remote snapshots.</li>
+      </ul>
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <table class="table-wrap">
+        <thead><tr><th>Symptom</th><th>Check</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>No Notchlet tools appear</td><td><code>notchlet mcp status</code>, client config file</td><td>Reconfigure for the right client; restart the client session.</td></tr>
+          <tr><td>401 or unauthorized</td><td><code>notchlet auth status</code>, <code>notchlet doctor</code></td><td>Log in again; ensure the environment variable is set where the client launches.</td></tr>
+          <tr><td>Wrong product or item</td><td><code>notchlet workspace info</code></td><td>Rebind with <code>workspace bind</code> after confirming server, product, and repository.</td></tr>
+          <tr><td>Context truncated</td><td>Response metadata</td><td>Follow the scoped cursor with the same limit; request only the sections you need.</td></tr>
+          <tr><td>Offline, no account</td><td><code>notchlet mcp serve --local</code></td><td>Use the local server; local tool names are prefixed with <code>notchlet_</code>.</td></tr>
+          <tr><td>Uncertain delivery response</td><td><code>development_operation_get</code></td><td>Query the operation with the same ID before retrying.</td></tr>
+        </tbody>
+      </table>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

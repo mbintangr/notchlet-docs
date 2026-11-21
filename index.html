@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Notchlet Docs</title>
+<meta name="description" content="Notchlet connects product requirements to repository changes, verification evidence, and delivery. Learn the platform, MCP server, CLI, skills, and workflow.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Overview</p>
+
+      <section class="hero">
+        <p class="eyebrow">Notchlet documentation</p>
+        <h1>Requirements in, verified changes out.</h1>
+        <p class="lead">Notchlet is a requirements and workflow system for software work. A connected platform holds products, backlog items, documents, and delivery state. A local CLI turns any of those into a revisable <strong>change</strong> with requirements, checks, tasks, and recorded evidence — so a task is only complete when something actually ran.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="workflow.html">Follow the workflow</a>
+          <a class="button" href="cli.html">CLI reference</a>
+          <a class="button" href="examples.html">See use cases</a>
+        </div>
+      </section>
+
+      <h2 id="what-is-notchlet">What Notchlet is</h2>
+      <p>Notchlet has four cooperating parts. You can use the local parts with no account, and add the platform when you want shared product context and delivery state.</p>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Platform</h3>
+          <p>The source of product requirements and work status: products, epics, stories, tasks, documents, tickets, Git issues, comments, and development delivery evaluation.</p>
+          <a href="platform.html">Platform guide</a>
+        </div>
+        <div class="card">
+          <h3>CLI and engine</h3>
+          <p><code>@notchlet/cli</code> on top of <code>@notchlet/core</code>: local workspaces, changes, revisions, checks, evidence, closure, and synchronization.</p>
+          <a href="cli.html">CLI reference</a>
+        </div>
+        <div class="card">
+          <h3>MCP server</h3>
+          <p>Authenticated, bounded context and platform operations for agents: backlog reads, comments, documents, development snapshots, instructions, and delivery.</p>
+          <a href="mcp.html">MCP guide</a>
+        </div>
+        <div class="card">
+          <h3>Skills</h3>
+          <p>Model-agnostic playbooks that route plan, implement, review, and deliver work — installable into OpenCode, Claude Code, and generic agent directories.</p>
+          <a href="skills.html">Skills guide</a>
+        </div>
+      </div>
+
+      <h2 id="core-idea">The core idea: a change is the unit of work</h2>
+      <p>A change is a small, self-describing contract between intent and evidence. It records what you mean to build, how you will know it works, and what actually ran:</p>
+<pre><code>change
+├── intent and outcome
+├── requirements      what must be true
+├── acceptance scenarios   when / then
+├── design decisions  why this approach
+├── checks            runnable commands, HTTP probes, UI assertions
+├── tasks             ordered work with dependencies
+├── run metadata      run command, preview, readiness, environment
+└── evidence          current, scoped, and fresh observations</code></pre>
+      <p>Every authoring write is revision-guarded. Completion is gated on current passed evidence, not on optimism. Local verification, local closure, remote delivery, merge, and deployment are separate outcomes and are never conflated.</p>
+
+      <div class="callout info">
+        <span class="callout-title">Evidence over assertions</span>
+        <p>A check that never ran is not a passing check. <code>notchlet verify</code> executes declared checks; <code>--record</code> turns the result into evidence linked only to what was executed. Stale, failed, <code>unknown</code>, or missing evidence is a blocker until re-verified.</p>
+      </div>
+
+      <h2 id="three-modes">Three ways to work</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Offline, local-first</h3>
+          <p>No account, no MCP, no network. Initialize a workspace and drive a change entirely with the CLI. Ideal for solo work, spikes, and CI-local verification.</p>
+<pre><code>notchlet init
+notchlet change new docs-refresh --quick
+# author, task, verify, close</code></pre>
+        </div>
+        <div class="card">
+          <h3>Connected to the platform</h3>
+          <p>Log in, configure MCP for your client, resolve a backlog item by key or title, import it as a change, and let agents read bounded context while the CLI owns local state.</p>
+<pre><code>notchlet auth login --server &lt;url&gt;
+notchlet mcp configure --client opencode
+notchlet backlog import NOT-123</code></pre>
+        </div>
+        <div class="card">
+          <h3>Platform-first</h3>
+          <p>Plan epics, stories, and tasks in the web app, attach documents and tickets, then hand work to an agent that resolves the item and records evidence back.</p>
+          <p class="small muted">MCP handles remote context and authorized writes; the CLI handles local change and evidence state.</p>
+        </div>
+        <div class="card">
+          <h3>Agent-driven</h3>
+          <p>Install the skills, then ask for the outcome. <code>notchlet-super</code> reads current state and routes to plan, implement, review, or deliver without replaying setup.</p>
+<pre><code>notchlet client init opencode --apply</code></pre>
+        </div>
+      </div>
+
+      <h2 id="loop">The loop</h2>
+<pre><code>backlog item ──import──▶ change ──plan──▶ requirements + checks + tasks
+                              │
+                     implement│
+                              ▼
+                         run checks ──▶ evidence (current, scoped)
+                              │
+                     review ──┴──▶ close (local) ──sync/deliver──▶ PR / status</code></pre>
+      <ol class="steps">
+        <li>
+          <h4>Resolve the work</h4>
+          <p>Use a local change, or search the platform by key or title and import it. Read the item and its bounded context — not the whole backlog.</p>
+        </li>
+        <li>
+          <h4>Plan to Definition of Ready</h4>
+          <p>Write intent, outcome, measurable requirements and scenarios, design decisions, runnable checks, and ordered tasks. <code>notchlet validate</code> reports every gap.</p>
+        </li>
+        <li>
+          <h4>Implement and verify</h4>
+          <p>Start tasks with revision checks, implement the behavior, then let <code>verify --serve</code> own the app lifecycle and record evidence.</p>
+        </li>
+        <li>
+          <h4>Review and close</h4>
+          <p>Review against acceptance criteria, close locally with <code>change close</code>, and handle remote delivery only when explicitly authorized.</p>
+        </li>
+      </ol>
+
+      <h2 id="quickstart">Quickstart (offline)</h2>
+      <p>Requires Node.js 22 or newer. The CLI reports its own version and the core engine version it embeds.</p>
+<pre><code>npm install -g @notchlet/cli
+notchlet --version
+# notchlet 1.0.0 · @notchlet/core 1.0.0
+
+mkdir my-project &amp;&amp; cd my-project
+notchlet init
+
+notchlet change new first-change --quick
+notchlet change update first-change \
+  --capability-impact none \
+  --capability-rationale "Local-only first change; no product capability changes."
+notchlet change update first-change \
+  --intent "Prove the workflow end to end." \
+  --outcome "A served page that passes a check with recorded evidence."</code></pre>
+      <div class="callout warn">
+        <span class="callout-title">Do not hand-edit authored state</span>
+        <p>Use <code>notchlet change add</code>, <code>change update</code>, and <code>change apply</code> instead of editing <code>tasks.json</code>. Direct edits bypass validation and are reported as authored artifact drift.</p>
+      </div>
+
+      <h2 id="map">What is documented here</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Page</th><th>What you get</th></tr></thead>
+          <tbody>
+            <tr><td><a href="concepts.html">Core concepts</a></td><td>Workspace model, changes, revisions, checks, evidence freshness, capability closure, sync, and statuses.</td></tr>
+            <tr><td><a href="cli.html">CLI</a></td><td>Install, every command group, authoring flags, verification lifecycle, and safety rules.</td></tr>
+            <tr><td><a href="mcp.html">MCP server</a></td><td>Bridge, local, and remote transports, client configuration, tool registry, bounded context, and credential hygiene.</td></tr>
+            <tr><td><a href="platform.html">Platform</a></td><td>Backlog hierarchy, documents, tickets, Git issues, development snapshots, instructions, and delivery.</td></tr>
+            <tr><td><a href="skills.html">Skills</a></td><td>All eight skills, when each applies, install and update paths, and generated guidance.</td></tr>
+            <tr><td><a href="workflow.html">Development workflow</a></td><td>State-aware routing and each phase from planning to authorized delivery.</td></tr>
+            <tr><td><a href="examples.html">Use cases</a></td><td>Eight end-to-end scenarios with real commands, offline and connected.</td></tr>
+            <tr><td><a href="reference.html">Cheat sheet</a></td><td>Command tables, flags, statuses, error recovery, environment, and glossary.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ground-rules">Ground rules</h2>
+      <ul>
+        <li><strong>Completion needs evidence.</strong> A task is complete after its verification evidence exists, not after code is written.</li>
+        <li><strong>Revisions protect intent.</strong> Pass <code>--revision</code> on authoring writes so stale edits fail before anything changes.</li>
+        <li><strong>Authorization is explicit.</strong> Ticket ownership is not permission to push, open or merge a PR, deploy, or publish. Ask first.</li>
+        <li><strong>Secrets stay out of config.</strong> Remote MCP entries reference the token through an environment variable; never inline it.</li>
+        <li><strong>Read before you write.</strong> Fetch bounded context for the item you need; do not dump a whole product to find one entry.</li>
+      </ul>
+
+      <p class="small muted">These pages document Notchlet CLI 1.0.0 and core 1.0.0. Commands were checked against <code>notchlet --help</code>; always confirm live behavior with your installed version.</p>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

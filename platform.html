@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform · Notchlet Docs</title>
+<meta name="description" content="The Notchlet platform: products, backlog hierarchy, documents, tickets, Git issues, development snapshots, instructions, delivery, and statuses.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Reference<span>/</span>Platform</p>
+      <p class="eyebrow">Reference</p>
+      <h1>Platform</h1>
+      <p class="lead">The platform is the shared source of product requirements and work status. It organizes products into backlog hierarchies, attaches requirement documents and tickets, and records development snapshots, instructions, and delivery evaluations.</p>
+
+      <h2 id="architecture">Platform architecture</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td><code>notchlet-be</code></td><td>NestJS backend with Prisma and PostgreSQL: authentication, backlog, documents, comments, tickets, Git issues, development service, REST API, Swagger at <code>/docs</code>, and the MCP endpoint at <code>/mcp</code>.</td></tr>
+            <tr><td><code>notchlet-fe</code></td><td>Next.js web application: product and backlog views, item detail with context and comments, documents, and development panel.</td></tr>
+            <tr><td>PostgreSQL</td><td>Primary datastore. Compose runs it on port 4021 by default, backend on 4022, frontend on 4023.</td></tr>
+            <tr><td>Docker Compose</td><td>One stack per environment. The backend runs Prisma migrations on container start, falling back to <code>db push</code> when no migration history exists.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The backend and MCP tools share the same <code>DevelopmentService</code>; REST and MCP preserve the same revisions, operation IDs, and scope checks.</p>
+
+      <h2 id="hierarchy">Products and backlog hierarchy</h2>
+      <p>A workspace binds a checkout to a server, product, and repository. Work is organized as a hierarchy:</p>
+      <ol class="steps">
+        <li>
+          <h4>Epic</h4>
+          <p>An outcome and its measurable completion conditions across an initiative. Completing one child never completes the epic.</p>
+        </li>
+        <li>
+          <h4>Story</h4>
+          <p>An independently verifiable system or user capability with acceptance criteria and dependency references.</p>
+        </li>
+        <li>
+          <h4>Task</h4>
+          <p>Actionable implementation or verification work with concrete scope, expected artifacts, and a check that demonstrates completion.</p>
+        </li>
+      </ol>
+      <ul>
+        <li>Items are identified by key or title in agent-facing work; numeric IDs remain for exact API references and parent relationships.</li>
+        <li>Keys are not guaranteed unique across products. Distinguish duplicates by product, parent, title, and numeric ID.</li>
+        <li>Before decomposing, inspect existing children; reuse or update matching items instead of creating duplicates.</li>
+      </ul>
+
+      <h2 id="item-context">Item context</h2>
+      <p>An item carries more than a description. The bounded development context can include:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Section</th><th>What it provides</th></tr></thead>
+          <tbody>
+            <tr><td>Item</td><td>Key, title, type, status, description, acceptance criteria, estimates.</td></tr>
+            <tr><td>Ancestors and children</td><td>The hierarchy needed to plan without loading the whole product.</td></tr>
+            <tr><td>Comments and activities</td><td>Checkpoints, review feedback, and change history.</td></tr>
+            <tr><td>Documents</td><td>Linked BRD, PRD, SRD, or CUSTOM requirement documents.</td></tr>
+            <tr><td>Repository and Git</td><td>Binding, branch and commit context where available.</td></tr>
+            <tr><td>Development</td><td>Changes, snapshots, instructions, and delivery state for the item.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Context is capped and paginated. Follow scoped cursors instead of assuming a truncated response is complete.</p>
+
+      <h3 id="description-revisions">Description revisions</h3>
+      <p>Description edits use <code>expectedDescriptionRevision</code> when the schema supports it. On conflict, reread and reconcile user edits. Keep requirements in the description; use comments for progress and checkpoints so user-authored intent is not overwritten with logs.</p>
+
+      <h2 id="documents">Documents</h2>
+      <p>Documents carry requirement sources: BRD (business), PRD (product), SRD (software), and CUSTOM. They are read as requirements. They do not override repository rules or explicit user instructions.</p>
+      <ul>
+        <li>Read the relevant document before planning, and reference its title in the plan.</li>
+        <li>For migrations, inspect the real workflows and callers before claiming coverage.</li>
+        <li>Substantial reports can be saved as CUSTOM documents and referenced from the item.</li>
+      </ul>
+
+      <h2 id="tickets">Tickets and Git issues</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>External tickets</h3>
+          <p>Tickets bridge to an external tracker. <code>RESOLVED</code> is distinct from <code>CLOSED</code>; do not auto-close during coding. Change a ticket only when the requested scope includes it and its resolution criteria are satisfied.</p>
+        </div>
+        <div class="card">
+          <h3>Git issues</h3>
+          <p>Create, link, or synchronize Git issues only when authorized. Verify the remote result and report partial failures rather than claiming every system was updated.</p>
+        </div>
+      </div>
+
+      <h2 id="development">Development state on the platform</h2>
+      <p>The development service tracks synchronized change state separately from the local workspace.</p>
+      <table class="table-wrap">
+        <thead><tr><th>Concept</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>Capabilities</td><td>Reports supported development operations and the embedded core version.</td></tr>
+          <tr><td>Changes</td><td>Remote records for changes; list and read by ID.</td></tr>
+          <tr><td>Snapshots</td><td>Immutable synchronized revisions uploaded against an expected change revision.</td></tr>
+          <tr><td>Instructions</td><td><code>development_instructions_get</code> evaluates guidance for <code>plan</code>, <code>revise</code>, <code>implement</code>, <code>verify</code>, or <code>resume</code> at a synchronized revision.</td></tr>
+          <tr><td>Checkpoints</td><td>Named checkpoints recorded on the item; not delivery evidence by themselves.</td></tr>
+          <tr><td>Delivery</td><td>Idempotent evaluation with operation ID, expected revision, payload hash, and snapshot revision. Evaluates provider state; does not merge or deploy.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="callout-title">Local and remote are not the same state</span>
+        <p>Remote snapshots never include unsynchronized local edits. Use <code>notchlet sync push</code> to publish a snapshot, and review divergence before resolving it.</p>
+      </div>
+
+      <h2 id="statuses">Statuses and completion</h2>
+      <table class="table-wrap">
+        <thead><tr><th>Status</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td><code>TODO</code></td><td>Planned but not started; the first executable item may be <code>IN_PROGRESS</code>.</td></tr>
+          <tr><td><code>IN_PROGRESS</code></td><td>Implementation incomplete or verification blockers remain.</td></tr>
+          <tr><td><code>IN_REVIEW</code></td><td>Implementation and checks are ready; required review or acceptance remains.</td></tr>
+          <tr><td><code>DONE</code></td><td>Every acceptance criterion is met with actual evidence, required review happened, and branch-linked PRs or MRs are merged and approved.</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>A parent is complete only when its own criteria and every required child are complete.</li>
+        <li>A PR, commit, or successful build alone is not proof of feature completion.</li>
+        <li>Issue closure is not merge proof. Verify the linked PR or MR state.</li>
+        <li>Reopening is allowed; treat it as new work and re-verify.</li>
+      </ul>
+
+      <h2 id="ui">Using the web app</h2>
+      <ol>
+        <li><strong>Products and backlog.</strong> Choose a product, inspect the hierarchy, and open an item.</li>
+        <li><strong>Item detail.</strong> Read description, acceptance criteria, children, comments, and linked documents.</li>
+        <li><strong>Documents.</strong> Attach or read requirement documents; they inform planning and review.</li>
+        <li><strong>Development panel.</strong> Inspect changes, synchronized snapshots, instructions, and delivery state.</li>
+        <li><strong>Comments.</strong> Record one concise agent checkpoint with approach, changed files, check outcomes, blockers, and next action.</li>
+      </ol>
+
+      <h2 id="authorization">Authorization boundaries</h2>
+      <div class="callout danger">
+        <span class="callout-title">Do not infer permission</span>
+        <p>Ticket ownership or a linked issue is not authorization to commit, push, create or merge a PR, deploy, publish, or change remote status. Each of those is a separate action that needs explicit approval.</p>
+      </div>
+      <ul>
+        <li>Local verification, local closure, remote delivery, merge, and deployment are separate outcomes.</li>
+        <li>Never describe a merge as a deployment, or a requested status as successful, until the service response confirms it.</li>
+        <li>Do not publish credentials, personal payloads, or raw production data in comments, checkpoints, or documents.</li>
+      </ul>
+
+      <h2 id="roles">Who does what</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Surface</th><th>Owns</th></tr></thead>
+          <tbody>
+            <tr><td>Platform UI / MCP</td><td>Products, backlog items, documents, tickets, comments, synchronized development state, delivery evaluation.</td></tr>
+            <tr><td>CLI and local workspace</td><td>Change model, revisions, task execution, checks, evidence, local closure, explicit sync.</td></tr>
+            <tr><td>Repository</td><td>Source of implementation truth: branches, commits, tests, builds, PR state.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

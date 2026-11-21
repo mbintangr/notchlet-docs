@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Core concepts · Notchlet Docs</title>
+<meta name="description" content="How Notchlet models workspaces, changes, revisions, checks, evidence freshness, capability closure, synchronization, and statuses.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Core concepts</p>
+      <p class="eyebrow">Foundations</p>
+      <h1>Core concepts</h1>
+      <p class="lead">The local model is small and strict: a workspace contains changes, a change contains authored intent and runnable checks, and completion is defined by current evidence. Understanding these objects makes every command predictable.</p>
+
+      <h2 id="workspace">Workspaces</h2>
+      <p>A workspace is any directory containing a <code>.notchlet</code> directory. The CLI uses the nearest initialized workspace, or an explicit <code>--workspace &lt;path&gt;</code> (also <code>--root</code>). Initialization is deliberately boring:</p>
+<pre><code>notchlet init              # local-only, no account
+notchlet init --interactive   # choose server, org, product, repository
+notchlet init --local --client opencode   # local mode plus skills and local MCP config</code></pre>
+      <p>Initialization writes only the workspace and its change directory, plus local guidance files. It does not require a bootstrap step, and using an existing workspace is always preferable to initializing a new one.</p>
+
+      <h3 id="workspace-layout">What lives on disk</h3>
+      <table class="table-wrap">
+        <thead><tr><th>Path</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>.notchlet/changes/&lt;change&gt;/</code></td><td>The change model and its artifacts: canonical <code>proposal.json</code>, <code>spec.json</code>, state <code>tasks.json</code>, and authored <code>design.md</code>.</td></tr>
+          <tr><td><code>.notchlet/.local/</code></td><td>Machine-local state: sync journals, close journal and lock, <code>mcp.json</code>, and client guidance snapshots. Never shared; excluded from evidence fingerprints.</td></tr>
+          <tr><td><code>AGENTS.md</code>, <code>PROMPT.md</code>, <code>.notchlet/README.md</code></td><td>Guidance written during initialization so agents know how to use the workspace.</td></tr>
+          <tr><td><code>.notchlet/changes/&lt;change&gt;/design.md</code></td><td>Authored design narrative; the canonical model stays authoritative.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="callout-title">Edit through the CLI</span>
+        <p>Use <code>change add</code>, <code>change update</code>, <code>change remove</code>, <code>change apply</code>, and the task commands. Hand-editing <code>tasks.json</code> bypasses the model; execution metadata edits are reported as execution drift without advancing the revision.</p>
+      </div>
+
+      <h2 id="change">Changes and revisions</h2>
+      <p>A change is the unit of planned work. It carries identity, intent, outcome, the requirement and check model, tasks, run metadata, capability declaration, evidence policy, and a revision counter.</p>
+      <table class="table-wrap">
+        <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code> / <code>name</code></td><td>Stable identifier and friendly name. Commands accept either.</td></tr>
+          <tr><td><code>mode</code></td><td><code>quick</code> or <code>standard</code>. Standard changes require substantive design content, design decisions, a capability baseline, and full requirement coverage.</td></tr>
+          <tr><td><code>intent</code> / <code>outcome</code></td><td>Why the change exists and the observable result. Outcome should be measurable.</td></tr>
+          <tr><td><code>revision</code></td><td>Monotonic authoring revision. Pass <code>--revision</code> on writes to reject stale edits with <code>revision_conflict</code>.</td></tr>
+          <tr><td><code>contentRevision</code></td><td>Revision of authored content specifically.</td></tr>
+          <tr><td><code>executionSha256</code></td><td>Fingerprint of execution metadata; changes are reported as execution drift.</td></tr>
+          <tr><td><code>evidencePolicy</code></td><td><code>perTask</code> warns at each task completion before evidence exists; <code>endOfChange</code> suppresses those warnings when one final batch covers everything.</td></tr>
+        </tbody>
+      </table>
+      <p>Two changes can share a name across different workspaces; keep the workspace root in mind when scripting.</p>
+
+      <h2 id="authored">Authored items</h2>
+      <p>Five kinds of content are authored through the CLI. Each has a stable ID and cross-references other items.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kind</th><th>Purpose</th><th>Key options</th></tr></thead>
+          <tbody>
+            <tr><td><code>requirement</code></td><td>What must be true, as measurable behavior.</td><td><code>--id</code>, <code>--title</code>, <code>--description</code></td></tr>
+            <tr><td><code>scenario</code></td><td>Given/when/then acceptance statement linked to a requirement.</td><td><code>--id</code>, <code>--when</code>, <code>--then</code>, <code>--requirement</code></td></tr>
+            <tr><td><code>decision</code></td><td>Design choice and rationale. Standard changes require at least one.</td><td><code>--id</code>, <code>--decision</code>, <code>--rationale</code></td></tr>
+            <tr><td><code>check</code></td><td>Executable evidence: command, HTTP probe, UI assertion, or manual attestation.</td><td><code>--kind</code>, <code>--command</code>, <code>--url</code>, expectations, links</td></tr>
+            <tr><td><code>task</code></td><td>Ordered implementation work with dependencies.</td><td><code>--id</code>, <code>--title</code>, <code>--requirement</code>, <code>--depends-on</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+<pre><code>notchlet change add my-change requirement --id R1 \
+  --title "Search returns matching items" \
+  --description "GET /search?q= returns only items whose name contains q."
+
+notchlet change add my-change scenario --id S1 \
+  --when "a query matches two items" --then "both are returned in name order" \
+  --requirement R1
+
+notchlet change add my-change check --id C1 \
+  --description "Search integration test" --kind command \
+  --command "node --test test/search.test.mjs" --requirement R1 --scenario S1
+
+notchlet change add my-change task --id T1 \
+  --title "Implement search endpoint" --requirement R1</code></pre>
+
+      <h3 id="check-kinds">Check kinds and assertions</h3>
+      <table class="table-wrap">
+        <thead><tr><th>Kind</th><th>Behavior</th><th>Assertions</th></tr></thead>
+        <tbody>
+          <tr><td><code>command</code></td><td>Runs a shell command in the workspace or a declared working directory.</td><td>Exit code; non-zero fails. Output is recorded.</td></tr>
+          <tr><td><code>http</code></td><td>Probes a URL.</td><td><code>--expected-status</code>, <code>--expected-body-contains</code>, JSON subset/containment/path, headers.</td></tr>
+          <tr><td><code>ui</code></td><td>Browser-level assertions against a served page.</td><td>Visibility, enabled state, title, scoped text, declarative interactions; captures archived on failure by default.</td></tr>
+          <tr><td><code>browser</code></td><td>Legacy alias that runs as an HTTP probe.</td><td>HTTP assertions.</td></tr>
+          <tr><td><code>manual</code></td><td>Reported as skipped during execution.</td><td>Requires separately recorded evidence.</td></tr>
+        </tbody>
+      </table>
+      <p>Checks can declare <code>--requirement</code>, <code>--scenario</code>, and <code>--task</code> links. Verification records only executed checks and their declared or explicitly selected links; unrelated work is never claimed.</p>
+
+      <h2 id="tasks">Tasks, dependencies, and evidence policy</h2>
+      <p>Tasks move through an ordered lifecycle. Starting and completing are revision-checked so two agents cannot silently overwrite each other.</p>
+<pre><code>notchlet task start T1 --change my-change
+notchlet task complete T1 --change my-change --revision 12
+notchlet task complete T1 --change my-change --require-evidence   # hard block without current passed evidence
+notchlet task complete --all --change my-change                   # remaining tasks in dependency order
+notchlet task update my-change T2 TODO --force                    # deliberate out-of-order transition</code></pre>
+      <ul>
+        <li>Completion warns when no current passed evidence references the task. Use <code>--require-evidence</code> when policy requires a hard block.</li>
+        <li>Reopening stays ungated; a reopened task must be re-verified before closing again.</li>
+        <li><code>--depends-on</code> orders tasks; <code>--all</code> completes remaining tasks under one revision.</li>
+      </ul>
+
+      <h2 id="run-metadata">Run metadata and the serve lifecycle</h2>
+      <p>A change can declare how its app runs, is previewed, and becomes ready. Verification then owns that lifecycle instead of assuming a server is already up.</p>
+<pre><code>notchlet change update my-change \
+  --run-command "node server.mjs" \
+  --preview-url "http://127.0.0.1:4173/" \
+  --readiness-url "http://127.0.0.1:4173/health" \
+  --ready-timeout 20000 --ready-interval 100 \
+  --environment PORT=4173</code></pre>
+      <table class="table-wrap">
+        <thead><tr><th>Option</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>--run-command</code></td><td>Started by <code>verify --serve</code>; stopped afterwards unless <code>--keep-running</code>.</td></tr>
+          <tr><td><code>--readiness-url</code></td><td>Polled until success or timeout before HTTP/UI checks run.</td></tr>
+          <tr><td><code>--environment KEY=value</code></td><td>Reproducible variables passed to served, setup, teardown, and check commands.</td></tr>
+          <tr><td><code>--setup</code> / <code>--teardown</code></td><td>Commands around the check batch. Persist setup with <code>--save-setup</code>.</td></tr>
+          <tr><td><code>--repeat</code></td><td>Reruns the batch (including setup) and reports state-dependent failures.</td></tr>
+          <tr><td><code>--check-setup-idempotence</code></td><td>Runs setup twice and fails when declared state paths change.</td></tr>
+          <tr><td><code>--reuse-serve</code></td><td>Allows targeting an already-running server the run does not own; setup is skipped.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="verification">Verification and evidence freshness</h2>
+      <p>Verification has three layers: the declared check, the observation of its result, and the evidence record that links observations to requirements, scenarios, and tasks.</p>
+<pre><code>notchlet verify my-change --serve --record
+notchlet verify my-change --check C1 --repeat 2
+notchlet verify my-change --record --capture-url http://127.0.0.1:4173/
+notchlet evidence list --change my-change --task T1
+notchlet evidence list --change my-change --stale</code></pre>
+      <ul>
+        <li><strong>Freshness basis.</strong> Evidence is bound to <code>git</code> or <code>artifact</code> observations. Artifact-bound evidence can satisfy closure without a Git repository.</li>
+        <li><strong>Freshness states.</strong> Evidence can be current, stale, failed, or <code>unknown</code>. Stale, failed, <code>unknown</code>, and missing evidence block closure until re-verified.</li>
+        <li><strong>Recovery is deliberate.</strong> Recovery commands printed by <code>verify</code>, <code>evidence list</code>, <code>status</code>, or closure preview are never executed automatically.</li>
+        <li><strong>Scoped claims.</strong> <code>--requirement</code>, <code>--scenario</code>, and <code>--task</code> require <code>--record</code> and only link what the run actually covered.</li>
+      </ul>
+      <div class="callout info">
+        <span class="callout-title">Outcomes are separate</span>
+        <p>Local verification, local closure, remote delivery, merge, and deployment are distinct. Closing a change does not mean a PR is merged, and a merged PR does not mean anything was deployed.</p>
+      </div>
+
+      <h2 id="capability">Capability closure</h2>
+      <p>Capability classification keeps trivial work cheap and makes real capability changes explicit.</p>
+      <table class="table-wrap">
+        <thead><tr><th>Classification</th><th>When</th><th>Closure requirements</th></tr></thead>
+        <tbody>
+          <tr><td><code>none</code></td><td>Quick change that declares <code>--capability-impact none</code> with a non-empty rationale.</td><td>No baseline, no delta operations.</td></tr>
+          <tr><td><code>delta</code></td><td>The change declares explicit capability delta operations.</td><td>Baseline revision plus delta operations; close with <code>--baseline-revision</code>.</td></tr>
+          <tr><td><code>standard</code></td><td>Any other standard change.</td><td>Baseline capture; close with <code>--baseline-revision</code>.</td></tr>
+        </tbody>
+      </table>
+<pre><code>notchlet change baseline my-change
+notchlet change delta my-change add --requirement R1 \
+  --rationale "Search capability now returns ranked matches."
+notchlet change delta my-change update --requirement R1 \
+  --rationale "Ranking ties are broken by name."
+notchlet change delta my-change delete --requirement R1</code></pre>
+      <p>Delta operations snapshot the authored requirement and its linked scenarios. If you edit them afterwards, re-author the operation so the snapshot matches. <code>notchlet change close my-change --preview</code> is read-only and reports planning, verification, local closure, and remote delivery separately, with a recovery command for every blocker.</p>
+
+      <h2 id="sync">Synchronization</h2>
+      <p>Sync moves a change snapshot between the local workspace and the connected server. It is explicit, revision-aware, and separate from closure.</p>
+<pre><code>notchlet sync mode auto|manual
+notchlet sync status --change my-change
+notchlet sync push --change my-change
+notchlet sync pull --change my-change
+notchlet sync resolve --change my-change --keep-local</code></pre>
+      <ul>
+        <li>Divergence requires review before resolving; <code>--keep-local</code> discards the remote side and must be a deliberate decision.</li>
+        <li>Remote snapshots do not represent unsynchronized local edits.</li>
+        <li><code>notchlet checkpoint --change my-change --name "..."</code> records a synchronized checkpoint; it is not delivery evidence by itself.</li>
+      </ul>
+
+      <h2 id="statuses">Statuses</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>TODO</code></td><td>Planned, not started.</td></tr>
+            <tr><td><code>IN_PROGRESS</code></td><td>Implementation started, or verification blockers remain.</td></tr>
+            <tr><td><code>IN_REVIEW</code></td><td>Implementation and checks are ready; review or acceptance remains.</td></tr>
+            <tr><td><code>DONE</code></td><td>Completion conditions met, including required review and evidence. Parents stay open while required children are open.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="security">Security and secrecy</h2>
+      <ul>
+        <li>MCP credentials are references, not literals: use <code>{env:NOTCHLET_MCP_TOKEN}</code> (OpenCode) or <code>${NOTCHLET_MCP_TOKEN}</code> (Claude Code) in config.</li>
+        <li><code>notchlet mcp token</code> prints the generated credential only on explicit invocation; treat it as a secret.</li>
+        <li>Never place tokens or credentials in CLI arguments, repository config, comments, checkpoints, or evidence.</li>
+        <li>Revoke credentials you no longer use with <code>notchlet mcp revoke</code>.</li>
+      </ul>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI reference · Notchlet Docs</title>
+<meta name="description" content="Install the Notchlet CLI and use every command group: changes, authoring, tasks, verification, evidence, sync, checkpoints, clients, and MCP.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Reference<span>/</span>CLI</p>
+      <p class="eyebrow">Reference</p>
+      <h1>Notchlet CLI</h1>
+      <p class="lead">The CLI owns local change state: authoring, revisions, tasks, verification, evidence, closure, and explicit synchronization. It reports <code>notchlet 1.0.0 · @notchlet/core 1.0.0</code> and requires Node.js 22 or newer.</p>
+
+      <h2 id="install">Install and verify</h2>
+<pre><code>npm install -g @notchlet/cli
+notchlet --version
+# notchlet 1.0.0 · @notchlet/core 1.0.0
+
+# or without a global install
+npx @notchlet/cli --version</code></pre>
+      <div class="callout info">
+        <span class="callout-title">Global options</span>
+        <p><code>--json</code> prints a machine envelope. <code>--workspace &lt;root&gt;</code> or <code>--root &lt;root&gt;</code> selects the workspace. <code>--server &lt;url&gt;</code> overrides the default server. <code>--version</code> prints CLI and core versions.</p>
+      </div>
+      <p>With <code>--json</code>, the envelope reports whether the command executed. For verification, inspect <code>data.result</code> or <code>data.verification.outcome</code> rather than <code>ok</code> alone.</p>
+
+      <h2 id="setup">Setup, auth, and workspace</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>notchlet init [path] [--local|--interactive]</code></td><td>Create a workspace. Local-only by default. <code>--client opencode|claude</code> also installs skills and local MCP config.</td></tr>
+            <tr><td><code>notchlet auth login --server &lt;url&gt;</code></td><td>Log in and store a profile. Add <code>--allow-file-token-store</code> only where appropriate.</td></tr>
+            <tr><td><code>notchlet auth status</code> · <code>auth logout</code> · <code>profile use --server &lt;url&gt;</code></td><td>Inspect, remove, or switch authentication profiles.</td></tr>
+            <tr><td><code>notchlet workspace bind --server &lt;url&gt; [--product &lt;name&gt;] [--repository &lt;name&gt;] [--rebind]</code></td><td>Bind the checkout to a product and repository. Prefer names; the server resolves them.</td></tr>
+            <tr><td><code>notchlet workspace info</code></td><td>Show the current binding and workspace configuration.</td></tr>
+            <tr><td><code>notchlet doctor</code></td><td>Diagnose workspace, binding, server connectivity, and authenticated capabilities.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn">
+        <span class="callout-title">Bootstrap only when required</span>
+        <p>Use the nearest existing workspace. Run <code>notchlet init</code> only when a workspace is genuinely missing and the user approves it; there is no separate bootstrap command.</p>
+      </div>
+
+      <h2 id="changes">Change lifecycle commands</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>change new &lt;name&gt; [--quick]</code></td><td>Create an active change. Without <code>--quick</code> it uses the standard schema.</td></tr>
+            <tr><td><code>change new &lt;name&gt; --from &lt;plan.json&gt; [--dry-run] [--no-render] [--markdown]</code></td><td>Import a declarative plan. <code>--dry-run</code> validates without writing.</td></tr>
+            <tr><td><code>change list [--archived]</code></td><td>List active changes, or archived changes.</td></tr>
+            <tr><td><code>change show &lt;name|id&gt;</code></td><td>Show content, capability, and readiness details.</td></tr>
+            <tr><td><code>status [&lt;name|id&gt; | --change &lt;name|id&gt;]</code></td><td>Planning, execution, verification, and closure state.</td></tr>
+            <tr><td><code>validate &lt;name|id&gt;</code></td><td>Check planning readiness and list blockers.</td></tr>
+            <tr><td><code>change path &lt;name|id&gt; [artifact]</code></td><td>Print the change directory or a declared artifact path.</td></tr>
+            <tr><td><code>change export &lt;name|id&gt; [--format json]</code></td><td>Export metadata, closure, evidence, and artifacts.</td></tr>
+            <tr><td><code>change restore &lt;name|id&gt;</code></td><td>Restore an archived change to active work.</td></tr>
+            <tr><td><code>change convert &lt;name|id&gt; --schema quick|standard</code></td><td>Convert schemas; revision-checked.</td></tr>
+            <tr><td><code>change close &lt;name|id&gt; --preview</code></td><td>Read-only closure report with recovery commands.</td></tr>
+            <tr><td><code>change close &lt;name|id&gt; [--baseline-revision &lt;n&gt;] [--yes]</code></td><td>Close and archive. Baseline revision is required for standard and delta changes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="authoring">Authoring commands and flags</h2>
+<pre><code>notchlet change update &lt;change&gt; --intent "..." --outcome "..."
+notchlet change update &lt;change&gt; requirement R1 --description "Refined wording"
+notchlet change update &lt;change&gt; --run-command "node server.mjs" \
+  --preview-url "http://127.0.0.1:4173/" --readiness-url "http://127.0.0.1:4173/health" \
+  --ready-timeout 20000 --ready-interval 100 --environment PORT=4173
+
+notchlet change add &lt;change&gt; requirement|scenario|decision|check|task [options]
+notchlet change remove &lt;change&gt; &lt;kind&gt; &lt;item-id&gt; [--revision &lt;n&gt;]
+notchlet change apply &lt;change&gt; --file &lt;plan.json&gt; [--revision &lt;n&gt;]</code></pre>
+      <p><code>change apply</code> applies an ordered <code>{ expectedRevision, operations }</code> batch atomically: the batch validates against the final state, writes once, bumps the revision once, and rolls back on failure. Capability delta operations are not valid batch entries.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Flag</th><th>Used by</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>--id</code>, <code>--title</code>, <code>--description</code></td><td>requirement, task, check</td><td>Identity and wording. Scenarios use <code>--when</code>/<code>--then</code>.</td></tr>
+            <tr><td><code>--command</code>, <code>--working-directory</code></td><td>check</td><td>Executable command and workspace-relative directory.</td></tr>
+            <tr><td><code>--kind</code></td><td>check</td><td><code>command</code>, <code>http</code>, <code>browser</code>, <code>ui</code>, <code>manual</code>.</td></tr>
+            <tr><td><code>--url</code>, <code>--expected-status</code></td><td>http check</td><td>Probe target and expected status.</td></tr>
+            <tr><td><code>--expected-body-contains</code>, <code>--expected-json</code>, <code>--expected-json-contains</code>, <code>--expected-json-at</code>, <code>--expected-header</code></td><td>http check</td><td>Body, JSON subset/containment/path, and header assertions.</td></tr>
+            <tr><td><code>--requirement</code>, <code>--scenario</code>, <code>--task</code></td><td>scenario, check, task</td><td>Cross-links. IDs accept comma-separated lists.</td></tr>
+            <tr><td><code>--depends-on</code></td><td>task</td><td>Dependency IDs for ordered completion.</td></tr>
+            <tr><td><code>--decision</code>, <code>--rationale</code></td><td>decision, delta</td><td>Design choice and reasoning.</td></tr>
+            <tr><td><code>--capability-name</code>, <code>--capability-impact none|delta</code>, <code>--capability-rationale</code></td><td>change update</td><td>Capability classification. <code>none</code> requires a rationale.</td></tr>
+            <tr><td><code>--run-command</code>, <code>--preview-url</code>, <code>--readiness-url</code>, <code>--ready-timeout</code>, <code>--ready-interval</code>, <code>--environment</code>, <code>--setup</code>, <code>--teardown</code></td><td>change update</td><td>Run and verification metadata.</td></tr>
+            <tr><td><code>--coverage-policy advisory|strict</code></td><td>change update</td><td>Whether unlinked requirements and scenarios block planning.</td></tr>
+            <tr><td><code>--revision &lt;n&gt;</code></td><td>writes, transitions</td><td>Rejects stale writes with <code>revision_conflict</code> before changing anything.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="render">Rendering and plans</h3>
+<pre><code>notchlet change render &lt;change&gt; --check    # report artifact drift
+notchlet change render &lt;change&gt; --write    # rewrite from the model; bumps revision once
+notchlet change render &lt;change&gt; --write --force   # overwrite unmarked hand-authored files
+notchlet change plan validate &lt;plan.json&gt;
+notchlet change plan status &lt;change&gt;
+notchlet change plan sync &lt;change&gt;       # accept the current plan hash after review</code></pre>
+      <p>Declared <code>proposal.md</code> and <code>spec.md</code> views render from the model. Generated files carry a marker; <code>--write</code> refuses unmarked hand-authored files unless you pass <code>--force</code>. Use <code>notchlet schema</code> to list or print shipped JSON schemas.</p>
+
+      <h2 id="tasks">Task commands</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>task start &lt;task&gt; --change &lt;change&gt; [--revision &lt;n&gt;]</code></td><td>Start work; revision defaults to current.</td></tr>
+            <tr><td><code>task complete &lt;task&gt; --change &lt;change&gt; [--require-evidence]</code></td><td>Complete with a warning when evidence is absent, or a hard block with the flag.</td></tr>
+            <tr><td><code>task complete --all --change &lt;change&gt;</code></td><td>Complete remaining tasks in dependency order under one revision.</td></tr>
+            <tr><td><code>task update &lt;change&gt; &lt;task&gt; &lt;status&gt; [revision]</code></td><td>Direct status change; <code>--force</code> allows out-of-order transitions.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="verify">Verification and evidence</h2>
+<pre><code>notchlet verify &lt;change&gt; [--check C1,C2] [--record] [--requirement R1] [--task T1]
+notchlet verify &lt;change&gt; --serve [--repeat 2] [--setup "node seed.mjs"] [--teardown "..."]
+notchlet verify &lt;change&gt; --record --capture-url http://127.0.0.1:4173/ --full-page
+notchlet evidence list --change &lt;change&gt; [--check C1] [--requirement R1] [--task T1] [--stale] [--failed]
+notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual --outcome passed</code></pre>
+      <table class="table-wrap">
+        <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>--serve</code></td><td>Start the declared run command, wait for readiness, run checks, then stop the server.</td></tr>
+          <tr><td><code>--serve-command</code></td><td>Start a different command than the change run metadata.</td></tr>
+          <tr><td><code>--repeat &lt;n&gt;</code></td><td>Rerun the batch (including setup) and report state-dependent failures.</td></tr>
+          <tr><td><code>--check-setup-idempotence --setup-state &lt;path&gt;</code></td><td>Fail when setup does not reproduce the declared state.</td></tr>
+          <tr><td><code>--reuse-serve</code></td><td>Target an existing server; setup is skipped.</td></tr>
+          <tr><td><code>--ui-capture never|on-failure|always</code></td><td>Archive UI captures for UI checks.</td></tr>
+          <tr><td><code>--capture-url</code></td><td>With <code>--record</code>, capture a settled screenshot and DOM snapshot.</td></tr>
+          <tr><td><code>--attach &lt;path&gt;</code></td><td>Attach a file to recorded evidence (screenshots, logs, reports).</td></tr>
+          <tr><td><code>--timeout &lt;ms&gt;</code></td><td>Per-check timeout; default 120000.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout ok">
+        <span class="callout-title">Prefer an owned run</span>
+        <p><code>--serve</code> gives the run a known start state. Reusing a server can hide drift, and repeated runs detect state-dependent failures that a single green run misses.</p>
+      </div>
+
+      <h2 id="sync">Sync, checkpoints, and imports</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>sync mode auto|manual</code></td><td>Set the synchronization preference.</td></tr>
+            <tr><td><code>sync status|push|pull --change &lt;change&gt;</code></td><td>Inspect or transfer a synchronized snapshot.</td></tr>
+            <tr><td><code>sync resolve --change &lt;change&gt; --keep-local</code></td><td>Resolve divergence after reviewing local artifacts.</td></tr>
+            <tr><td><code>checkpoint --change &lt;change&gt; --name &lt;name&gt; [--summary] [--backlog-status ...]</code></td><td>Record a synchronized checkpoint; not delivery evidence by itself.</td></tr>
+            <tr><td><code>backlog import &lt;item-key|title|id&gt; [--product-id &lt;id&gt;]</code></td><td>Import a backlog item as a change; product is inferred from the binding.</td></tr>
+            <tr><td><code>instructions &lt;change&gt; --action plan|revise|implement|verify|resume</code></td><td>Get stage-specific workflow guidance for the change.</td></tr>
+            <tr><td><code>client init|update &lt;agent&gt; --apply</code></td><td>Install or refresh generated skills for <code>opencode</code>, <code>claude</code>, or <code>agent</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="mcp-commands">MCP commands</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>init --local --client &lt;agent&gt;</code></td><td>Initialize offline and configure the local MCP server.</td></tr>
+            <tr><td><code>mcp serve --local</code></td><td>Run the offline local MCP server (no account, prefixed tool names).</td></tr>
+            <tr><td><code>mcp serve --server &lt;url&gt; [--client &lt;agent&gt;]</code></td><td>Run the local stdio bridge to a Notchlet server.</td></tr>
+            <tr><td><code>mcp configure --client &lt;agent&gt; [--transport bridge|remote|local]</code></td><td>Write project MCP configuration for the chosen client.</td></tr>
+            <tr><td><code>mcp status [--server &lt;url&gt;] [--client &lt;agent&gt;]</code></td><td>Show setup, credential, and config state.</td></tr>
+            <tr><td><code>mcp token [--server &lt;url&gt;]</code></td><td>Print the stored MCP credential for environment setup. Secret; explicit use only.</td></tr>
+            <tr><td><code>mcp disconnect [--client &lt;agent&gt;] [--revoke] [--yes]</code></td><td>Remove this project entry, optionally revoking the credential.</td></tr>
+            <tr><td><code>mcp revoke [--server &lt;url&gt;] [--credential-id &lt;id&gt;] [--yes]</code></td><td>Revoke a stored credential.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>See the <a href="mcp.html">MCP guide</a> for transports, client config shapes, and the tool registry.</p>
+
+      <h2 id="session">A complete local session</h2>
+<pre><code>notchlet init
+notchlet change new search-endpoint --quick
+notchlet change update search-endpoint \
+  --intent "Expose search over items." \
+  --outcome "GET /search?q= returns matching item names in order." \
+  --capability-impact none \
+  --capability-rationale "Internal spike; not yet a shipped capability." \
+  --run-command "node server.mjs" \
+  --preview-url "http://127.0.0.1:4173/" \
+  --readiness-url "http://127.0.0.1:4173/health" \
+  --environment PORT=4173
+
+notchlet change add search-endpoint requirement --id R1 \
+  --title "Search endpoint" --description "Returns items whose name contains q."
+notchlet change add search-endpoint scenario --id S1 \
+  --when "q matches two items" --then "both are returned in name order" --requirement R1
+notchlet change add search-endpoint check --id C1 \
+  --description "search tests" --kind command \
+  --command "node --test test/search.test.mjs" --requirement R1 --scenario S1
+notchlet change add search-endpoint task --id T1 \
+  --title "Implement endpoint" --requirement R1
+
+notchlet validate search-endpoint
+notchlet task start T1 --change search-endpoint
+# implement, run focused tests
+notchlet verify search-endpoint --serve --record
+notchlet task complete T1 --change search-endpoint --require-evidence
+notchlet change close search-endpoint --preview
+notchlet change close search-endpoint</code></pre>
+      <div class="callout warn">
+        <span class="callout-title">Never invent results</span>
+        <p>Do not report a check as passing unless it ran and passed. Distinguish failures caused by your change from pre-existing failures, and record blockers instead of hiding them.</p>
+      </div>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

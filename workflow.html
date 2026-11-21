@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development workflow · Notchlet Docs</title>
+<meta name="description" content="The Notchlet development workflow: state-aware routing, planning, implementation, verification, review, and authorized delivery with evidence.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Practice<span>/</span>Workflow</p>
+      <p class="eyebrow">Practice</p>
+      <h1>Development workflow</h1>
+      <p class="lead">The Notchlet workflow is a loop, not a checklist you replay. Read current state, take the smallest correct action, prove it with executed checks, and only then change status or deliver.</p>
+
+      <h2 id="diagram">The lifecycle</h2>
+<pre><code>  read state ──▶ resolve work ──▶ plan ──▶ implement ──▶ verify ──▶ review ──▶ close
+       ▲                            │                                                │
+       │                            └──────── revise / resume ──────────────────────┘
+       │                                                                             │
+       └────────────────────────── sync / deliver (authorized) ◀─────────────────────┘</code></pre>
+      <p>Every phase is revisitable. Revision checks protect against stale edits, and evidence is revalidated whenever the change moves forward.</p>
+
+      <h2 id="phase-0">Phase 0 — Read current state</h2>
+      <p>Do this before anything else. Most wasted work comes from restarting setup or replanning work that already exists.</p>
+<pre><code>notchlet status &lt;change&gt;
+notchlet instructions &lt;change&gt; --action resume
+notchlet change list
+notchlet workspace info</code></pre>
+      <ul>
+        <li>Reuse the identified workspace, product, repository, backlog item, and active change while they remain valid.</li>
+        <li>Only initialize a workspace when none exists and the user approves it. There is no separate bootstrap command.</li>
+        <li>Only configure MCP when credentials or connection settings are genuinely missing.</li>
+      </ul>
+      <div class="callout info">
+        <span class="callout-title">The router decides</span>
+        <p><code>notchlet-super</code> turns intent plus state into the smallest action: explore, plan, resume, revise, implement, review, or deliver. Exploration and planning do not require initialization, a hierarchy, or application writes.</p>
+      </div>
+
+      <h2 id="phase-1">Phase 1 — Resolve the work</h2>
+      <h3 id="connected-work">Connected backlog work</h3>
+      <ol>
+        <li>Resolve the product and repository binding with <code>workspace info</code>.</li>
+        <li>Search by key or title; read the matching item and its bounded context.</li>
+        <li>Confirm product, parent, and title before creating anything.</li>
+        <li>Import only when no matching local change exists:</li>
+      </ol>
+<pre><code>notchlet backlog import NOT-123
+notchlet status NOT-123
+notchlet instructions NOT-123 --action plan</code></pre>
+      <h3 id="local-work">Local-only work</h3>
+<pre><code>notchlet change new my-change            # standard
+notchlet change new my-spike --quick     # quick, no-impact work</code></pre>
+      <p>Check for an existing change first with <code>change list</code>. Reuse and refine instead of duplicating.</p>
+
+      <h2 id="phase-2">Phase 2 — Plan to Definition of Ready</h2>
+      <p>Planning stays lightweight, but it must be measurable. A story or task is ready only when all of these hold:</p>
+      <ul class="small">
+        <li>Acceptance criteria are written and measurable (given/when/then or equivalent).</li>
+        <li>Dependencies are listed, or marked none.</li>
+        <li>Scope is specific: capability, route, or component is named.</li>
+        <li>Verification criteria say what test or evidence proves completion.</li>
+        <li>No unresolved blocking dependency remains.</li>
+      </ul>
+<pre><code>notchlet change update my-change \
+  --intent "Expose search over items." \
+  --outcome "GET /search?q= returns matching names in order." \
+  --capability-impact none \
+  --capability-rationale "Docs-only or internal work; no shipped capability changes."
+
+notchlet change add my-change requirement --id R1 \
+  --title "Search endpoint" --description "Returns items whose name contains q."
+notchlet change add my-change scenario --id S1 \
+  --when "q matches two items" --then "both are returned in name order" --requirement R1
+notchlet change add my-change decision --id D1 \
+  --decision "Use a single SQL query." \
+  --rationale "Avoids N+1 reads and keeps ordering deterministic."
+notchlet change add my-change check --id C1 \
+  --description "Search tests" --kind command \
+  --command "node --test test/search.test.mjs" --requirement R1 --scenario S1
+notchlet change add my-change task --id T1 \
+  --title "Implement endpoint" --requirement R1
+
+notchlet validate my-change</code></pre>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Schema</th><th>Additional planning requirements</th></tr></thead>
+          <tbody>
+            <tr><td>Quick</td><td>Capability impact <code>none</code> with a rationale for no-impact work, or an explicit delta.</td></tr>
+            <tr><td>Standard</td><td>Substantive design content, at least one decision with rationale, every requirement covered by a scenario, baseline capture, and a declared delta or no-impact rationale.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Declare run metadata at planning time so verification is reproducible:</p>
+<pre><code>notchlet change update my-change \
+  --run-command "node server.mjs" \
+  --preview-url "http://127.0.0.1:4173/" \
+  --readiness-url "http://127.0.0.1:4173/health" \
+  --ready-timeout 20000 --ready-interval 100 \
+  --environment PORT=4173</code></pre>
+
+      <h2 id="phase-3">Phase 3 — Implement</h2>
+      <ol>
+        <li>Confirm the repository, branch, and clean or intentional working state (<code>git status --short</code>).</li>
+        <li>Set the item or change to <code>IN_PROGRESS</code> when implementation starts.</li>
+        <li>Start the task with a revision check so stale work is caught early.</li>
+        <li>Implement complete behavior: validation, failure paths, authorization, and caller integration.</li>
+        <li>Run focused checks and distinguish pre-existing failures from new ones.</li>
+      </ol>
+<pre><code>notchlet task start T1 --change my-change
+# implement
+node --test test/search.test.mjs
+notchlet task complete T1 --change my-change --require-evidence</code></pre>
+      <div class="callout warn">
+        <span class="callout-title">Do not mark complete on intent</span>
+        <p>Completion warns without current passed evidence; <code>--require-evidence</code> turns that warning into a hard block. Reopening stays ungated, but the task must be re-verified.</p>
+      </div>
+
+      <h2 id="phase-4">Phase 4 — Verify with evidence</h2>
+      <p>Let verification own the app lifecycle so checks start from a known state:</p>
+<pre><code>notchlet verify my-change --serve --record
+notchlet verify my-change --serve --repeat 2         # detect state-dependent failures
+notchlet verify my-change --record --capture-url http://127.0.0.1:4173/ --full-page
+notchlet evidence list --change my-change --task T1</code></pre>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Observation</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>passed</code>, current</td><td>Executed against the current state; can satisfy completion and closure.</td></tr>
+            <tr><td><code>failed</code></td><td>The check ran and failed. Fix the cause or record the blocker.</td></tr>
+            <tr><td><code>stale</code></td><td>The observed state changed; re-run deliberately.</td></tr>
+            <tr><td><code>unknown</code></td><td>Freshness could not be established, for example a truncated Git observation. Blocks closure until re-verified.</td></tr>
+            <tr><td>missing</td><td>No evidence references the work. Run the check with <code>--record</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>Use <code>--setup</code>, <code>--save-setup</code>, and <code>--check-setup-idempotence</code> when state must be reset or reproduced.</li>
+        <li>Prefer an owned <code>--serve</code> run; <code>--reuse-serve</code> can hide drift and skips setup.</li>
+        <li>Recovery commands printed by the CLI must be run deliberately; they are never applied automatically.</li>
+      </ul>
+
+      <h2 id="phase-5">Phase 5 — Review</h2>
+      <p>Review happens after implementation and before delivery. Self-recorded checks are not independent review.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Requirements coverage</h3>
+          <ul class="small">
+            <li>Every acceptance criterion is addressed.</li>
+            <li>No scope creep beyond what was requested.</li>
+            <li>Edge cases and failure behavior are handled.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Code quality</h3>
+          <ul class="small">
+            <li>No secrets, credentials, or personal data in the diff.</li>
+            <li>No build artifacts, dependency folders, or local config committed.</li>
+            <li>Existing abstractions reused; no unnecessary new ones.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Testing</h3>
+          <ul class="small">
+            <li>Lint, type-check, and focused tests pass.</li>
+            <li>Test output is actual, not assumed.</li>
+            <li>Pre-existing failures are identified separately.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Backlog consistency</h3>
+          <ul class="small">
+            <li>Item description matches implemented behavior.</li>
+            <li>Description edits used the expected revision.</li>
+            <li>One concise checkpoint comment records approach and outcomes.</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Approve</strong> only when all checks pass; set the item to <code>IN_REVIEW</code> or keep it there and let delivery proceed. <strong>Request changes</strong> with specific feedback and return to implementation. Re-review only changed files and the feedback items.</p>
+
+      <h2 id="phase-6">Phase 6 — Close and deliver</h2>
+      <p>Closure preview is read-only and reports every dimension separately:</p>
+<pre><code>notchlet change close my-change --preview
+notchlet change close my-change                          # quick no-impact changes
+notchlet change close my-change --baseline-revision 3    # standard and delta changes</code></pre>
+      <ul>
+        <li>Standard and delta changes require the captured baseline revision. Quick no-impact changes close without one.</li>
+        <li>Every blocker includes a recovery command or recovery tool; run it deliberately.</li>
+        <li>Local closure is not remote delivery. Delivery evaluates existing provider state and does not merge or deploy.</li>
+        <li>For branch-linked work, a <code>DONE</code> request requires the exact linked PR or MR to be merged and approved.</li>
+      </ul>
+      <h3 id="delivery-steps">Delivery sequence</h3>
+<ol class="steps">
+        <li>
+          <h4>Persist evidence</h4>
+          <p>Record a meaningful checkpoint with approach, changed files, exact commands and outcomes, blockers, and next action. Never include credentials.</p>
+        </li>
+        <li>
+          <h4>Sync deliberately</h4>
+          <p><code>notchlet sync push --change my-change</code>. On divergence, review local artifacts before <code>sync resolve --keep-local</code>.</p>
+        </li>
+        <li>
+          <h4>Evaluate delivery</h4>
+          <p>Use <code>development_delivery_create</code> with expected revision, operation ID, payload hash, and snapshot revision. Query the operation after an uncertain response.</p>
+        </li>
+        <li>
+          <h4>Confirm the returned state</h4>
+          <p>Report the status the service returned. Do not describe merge as deployment or a requested status as successful before confirmation.</p>
+        </li>
+      </ol>
+
+      <h2 id="revisions">Revision discipline</h2>
+      <ul>
+        <li>Pass the revision you read: <code>--revision &lt;n&gt;</code> on authoring writes, removes, converts, applies, and task transitions.</li>
+        <li>A stale write returns <code>revision_conflict</code> before anything changes. Reread, reconcile, and retry.</li>
+        <li>Editing a requirement invalidates its delta snapshot; re-author the delta operation.</li>
+        <li>Rendering artifacts bumps the revision once; re-check drift afterwards with <code>change render --check</code>.</li>
+      </ul>
+
+      <h2 id="recovery">Recovery map</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Condition</th><th>Response</th></tr></thead>
+          <tbody>
+            <tr><td><code>revision_conflict</code></td><td>Reread the change, reconcile both edits, then retry with the current revision.</td></tr>
+            <tr><td>Stale or <code>unknown</code> verification</td><td>Re-run the printed recovery command or <code>notchlet verify --record</code> deliberately.</td></tr>
+            <tr><td>Missing evidence</td><td>Run the relevant check with <code>--record</code> and link requirement, scenario, or task IDs.</td></tr>
+            <tr><td>Missing baseline</td><td><code>notchlet change baseline &lt;change&gt;</code>, then close with the returned revision.</td></tr>
+            <tr><td>Undeclared capability delta</td><td>Declare <code>--capability-impact none</code> with a rationale, or author explicit delta operations.</td></tr>
+            <tr><td>Sync divergence</td><td>Review both sides, then resolve explicitly; <code>--keep-local</code> discards remote changes.</td></tr>
+            <tr><td>Plan drift</td><td><code>notchlet change plan status</code>; review, then <code>plan sync</code> or accept drift deliberately at close.</td></tr>
+            <tr><td>Setup not idempotent</td><td>Fix setup or declare <code>--setup-state</code> paths and re-run with <code>--check-setup-idempotence</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="anti-patterns">Anti-patterns</h2>
+      <ul>
+        <li>Replaying initialization or replanning when valid state already exists.</li>
+        <li>Hand-editing <code>tasks.json</code> or other authored state instead of using the CLI.</li>
+        <li>Dumping a whole product to find one backlog item.</li>
+        <li>Inventing MCP tool names, comments, or results that the live schema does not support.</li>
+        <li>Treating a successful build, a commit, or an opened PR as feature completion.</li>
+        <li>Pushing, merging, deploying, or changing status because a task finished.</li>
+        <li>Putting tokens, credentials, or production payloads in config, prompts, comments, or evidence.</li>
+        <li>Auto-running recovery commands without reviewing what they change.</li>
+      </ul>
+
+      <h2 id="done">Definition of done</h2>
+      <div class="callout ok">
+        <span class="callout-title">Before delivery</span>
+        <ul class="small">
+          <li>Every acceptance criterion is met with actual evidence.</li>
+          <li>Focused checks pass, with pre-existing failures documented separately.</li>
+          <li>Review is approved, or review is not required by policy.</li>
+          <li>Branch-linked work has a verified merged PR or MR; issue-only work is committed.</li>
+          <li>No unresolved blockers remain; evidence is current, not stale or unknown.</li>
+          <li>Parents stay open while required children are open.</li>
+        </ul>
+      </div>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

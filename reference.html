@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheat sheet · Notchlet Docs</title>
+<meta name="description" content="Notchlet command cheat sheet, flags, schemas, statuses, evidence states, error recovery, environment, and glossary.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Practice<span>/</span>Cheat sheet</p>
+      <p class="eyebrow">Reference</p>
+      <h1>Cheat sheet</h1>
+      <p class="lead">A compact lookup for daily work. When the CLI prints a recovery command, treat that output as authoritative over this page.</p>
+
+      <h2 id="versions">Versions and requirements</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>CLI</td><td><code>@notchlet/cli</code> 1.0.0, installed as <code>notchlet</code></td></tr>
+            <tr><td>Engine</td><td><code>@notchlet/core</code> 1.0.0, reported by <code>notchlet --version</code></td></tr>
+            <tr><td>Node.js</td><td>22 or newer</td></tr>
+            <tr><td>Default server</td><td><code>https://pg-api.mbintangr.com</code> (override with <code>--server</code>)</td></tr>
+            <tr><td>Docs target</td><td>Commands verified against <code>notchlet --help</code> for CLI 1.0.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="commands">Command cheat sheet</h2>
+      <h3 id="cmd-setup">Setup, auth, workspace</h3>
+<pre><code>notchlet --version
+notchlet init [path] [--local|--interactive] [--client opencode|claude]
+notchlet auth login --server &lt;url&gt;
+notchlet auth status
+notchlet auth logout [--server &lt;url&gt;]
+notchlet profile use --server &lt;url&gt;
+notchlet workspace bind --server &lt;url&gt; [--product &lt;name&gt;] [--repository &lt;name&gt;] [--rebind]
+notchlet workspace info
+notchlet doctor</code></pre>
+
+      <h3 id="cmd-changes">Changes</h3>
+<pre><code>notchlet change new &lt;name&gt; [--quick] [--from &lt;plan.json&gt; [--dry-run]]
+notchlet change list [--archived]
+notchlet change show &lt;change&gt;
+notchlet status [&lt;change&gt;]
+notchlet validate &lt;change&gt;
+notchlet change path &lt;change&gt; [artifact]
+notchlet change export &lt;change&gt; [--format json]
+notchlet change restore &lt;change&gt;
+notchlet change convert &lt;change&gt; --schema quick|standard
+notchlet change close &lt;change&gt; --preview
+notchlet change close &lt;change&gt; [--baseline-revision &lt;n&gt;] [--yes]</code></pre>
+
+      <h3 id="cmd-authoring">Authoring</h3>
+<pre><code>notchlet change update &lt;change&gt; --intent "..." --outcome "..."
+notchlet change update &lt;change&gt; --capability-impact none --capability-rationale "..."
+notchlet change update &lt;change&gt; --run-command "..." --preview-url "..." --readiness-url "..."
+notchlet change update &lt;change&gt; --environment KEY=value --ready-timeout 20000 --ready-interval 100
+notchlet change update &lt;change&gt; requirement R1 --description "..."
+notchlet change add &lt;change&gt; requirement|scenario|decision|check|task [options]
+notchlet change remove &lt;change&gt; &lt;kind&gt; &lt;id&gt; [--revision &lt;n&gt;]
+notchlet change apply &lt;change&gt; --file &lt;plan.json&gt; [--revision &lt;n&gt;]
+notchlet change render &lt;change&gt; --check|--write
+notchlet change baseline &lt;change&gt;
+notchlet change delta &lt;change&gt; add|update|remove|delete --requirement &lt;id&gt; [--rationale "..."]
+notchlet change plan validate &lt;path&gt; | status &lt;change&gt; | sync &lt;change&gt;</code></pre>
+
+      <h3 id="cmd-tasks">Tasks</h3>
+<pre><code>notchlet task start &lt;task&gt; --change &lt;change&gt; [--revision &lt;n&gt;]
+notchlet task complete &lt;task&gt; --change &lt;change&gt; [--revision &lt;n&gt;] [--require-evidence]
+notchlet task complete --all --change &lt;change&gt;
+notchlet task update &lt;change&gt; &lt;task&gt; &lt;status&gt; [--force]</code></pre>
+
+      <h3 id="cmd-verify">Verify and evidence</h3>
+<pre><code>notchlet verify &lt;change&gt; [--check C1,C2] [--record] [--requirement R1] [--scenario S1] [--task T1]
+notchlet verify &lt;change&gt; --serve [--repeat 2] [--setup "..."] [--teardown "..."]
+notchlet verify &lt;change&gt; --check-setup-idempotence --setup-state &lt;path&gt;
+notchlet verify &lt;change&gt; --record --capture-url &lt;url&gt; [--full-page] [--attach &lt;path&gt;]
+notchlet evidence list --change &lt;change&gt; [--stale] [--failed] [--task T1]
+notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual --outcome passed</code></pre>
+
+      <h3 id="cmd-sync">Sync, checkpoints, imports</h3>
+<pre><code>notchlet sync mode auto|manual
+notchlet sync status|push|pull --change &lt;change&gt;
+notchlet sync resolve --change &lt;change&gt; --keep-local
+notchlet checkpoint --change &lt;change&gt; --name &lt;name&gt; [--summary "..."]
+notchlet backlog import &lt;key|title|id&gt; [--product-id &lt;id&gt;]
+notchlet instructions &lt;change&gt; --action plan|revise|implement|verify|resume
+notchlet client init|update &lt;opencode|claude|agent&gt; --apply</code></pre>
+
+      <h3 id="cmd-mcp">MCP</h3>
+<pre><code>notchlet mcp configure --client &lt;client&gt; [--transport bridge|remote|local]
+notchlet mcp status [--server &lt;url&gt;] [--client &lt;client&gt;]
+notchlet mcp serve --local
+notchlet mcp serve --server &lt;url&gt;
+notchlet mcp token [--server &lt;url&gt;]        # secret; explicit use only
+notchlet mcp disconnect [--client &lt;client&gt;] [--revoke] [--yes]
+notchlet mcp revoke [--server &lt;url&gt;] [--credential-id &lt;id&gt;] [--yes]</code></pre>
+
+      <h2 id="flags">Flags worth memorizing</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Flag</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td><code>--revision &lt;n&gt;</code></td><td>Reject stale writes with <code>revision_conflict</code> before anything changes.</td></tr>
+            <tr><td><code>--record</code></td><td>Turn an executed verification into evidence. Required to claim coverage.</td></tr>
+            <tr><td><code>--serve</code></td><td>Let verification own start, readiness, and shutdown of the app.</td></tr>
+            <tr><td><code>--repeat &lt;n&gt;</code></td><td>Detect state-dependent failures by rerunning the batch.</td></tr>
+            <tr><td><code>--require-evidence</code></td><td>Hard-block task completion without current passed evidence.</td></tr>
+            <tr><td><code>--preview</code></td><td>Read-only closure report with recovery commands.</td></tr>
+            <tr><td><code>--json</code></td><td>Machine envelope for scripting; for verify, read <code>data.result</code>.</td></tr>
+            <tr><td><code>--workspace &lt;root&gt;</code></td><td>Select a workspace explicitly instead of the nearest one.</td></tr>
+            <tr><td><code>--dry-run</code></td><td>Validate a plan import without writing.</td></tr>
+            <tr><td><code>--baseline-revision &lt;n&gt;</code></td><td>Required to close standard and delta changes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="checks">Check kinds and assertions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kind</th><th>Use</th><th>Assertions</th></tr></thead>
+          <tbody>
+            <tr><td><code>command</code></td><td>Tests, linters, type checks, scripts.</td><td>Non-zero exit fails; <code>--working-directory</code> sets the directory.</td></tr>
+            <tr><td><code>http</code></td><td>Endpoints and health probes.</td><td>Status, body contains, JSON subset/containment/path, headers.</td></tr>
+            <tr><td><code>ui</code></td><td>Rendered behavior.</td><td>Visibility, enabled state, title, scoped text, interaction steps; captures on failure.</td></tr>
+            <tr><td><code>browser</code></td><td>Legacy alias.</td><td>Runs as an HTTP probe.</td></tr>
+            <tr><td><code>manual</code></td><td>Human attestation.</td><td>Skipped during verify; requires recorded evidence.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="schemas">Change schemas</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Quick</h3>
+          <ul class="small">
+            <li>Use for small, local, no-capability work.</li>
+            <li>Declare <code>--capability-impact none</code> with a rationale.</li>
+            <li>Close without a baseline revision.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Standard</h3>
+          <ul class="small">
+            <li>Use for features or capability changes.</li>
+            <li>Substantive design, at least one decision with rationale, every requirement covered by a scenario.</li>
+            <li>Capture a baseline; declare a delta or no-impact rationale.</li>
+            <li>Close with <code>--baseline-revision</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 id="states">States at a glance</h2>
+      <h3 id="change-states">Change lifecycle</h3>
+      <p class="small">Draft planning → validated (ready) → executing tasks → verified → closed/archived. Revisions advance on authoring writes; rendering writes once; execution metadata changes are reported as execution drift.</p>
+      <h3 id="evidence-states">Evidence freshness</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>State</th><th>Treatment</th></tr></thead>
+          <tbody>
+            <tr><td>current passed</td><td>Satisfies completion and closure.</td></tr>
+            <tr><td>failed</td><td>Blocks until fixed and re-run.</td></tr>
+            <tr><td>stale</td><td>Blocks; rerun deliberately.</td></tr>
+            <tr><td>unknown</td><td>Blocks until re-verified (for example a truncated Git observation).</td></tr>
+            <tr><td>missing</td><td>Blocks when policy requires evidence.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small">Freshness basis is <code>git</code> or <code>artifact</code>. Artifact-bound evidence can close without a Git repository.</p>
+
+      <h2 id="recovery">Error and recovery reference</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Signal</th><th>Meaning</th><th>Recovery</th></tr></thead>
+          <tbody>
+            <tr><td><code>revision_conflict</code></td><td>The write used a stale revision.</td><td>Reread, reconcile, retry with the current revision.</td></tr>
+            <tr><td>stale / unknown verification</td><td>Evidence no longer reflects current state.</td><td>Run the printed recovery command or <code>verify --record</code>.</td></tr>
+            <tr><td>missing evidence</td><td>No observation references the work.</td><td>Verify with <code>--record</code> and explicit links.</td></tr>
+            <tr><td>baseline missing</td><td>Standard/delta change not baselined.</td><td><code>notchlet change baseline &lt;change&gt;</code>.</td></tr>
+            <tr><td>undeclared capability delta</td><td>Standard change without a declaration.</td><td>Declare no-impact with rationale, or author delta operations.</td></tr>
+            <tr><td>plan drift</td><td>The imported plan changed since acceptance.</td><td>Review <code>plan status</code>, then <code>plan sync</code> or accept at close.</td></tr>
+            <tr><td>server reused unexpectedly</td><td><code>--serve</code> found a listener it does not own.</td><td>Stop it or pass <code>--reuse-serve</code> knowing setup is skipped.</td></tr>
+            <tr><td>non-idempotent setup</td><td>Setup changed state on the second run.</td><td>Fix setup, declare <code>--setup-state</code>, re-run the idempotence check.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout info">
+        <span class="callout-title">JSON envelope</span>
+        <p><code>--json</code> reports command execution in <code>ok</code>. For verification, the result lives in <code>data.result</code> or <code>data.verification.outcome</code>; a successful command can still be a failed verification.</p>
+      </div>
+
+      <h2 id="environment">Files and environment</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td>Workspace</td><td>Directory containing <code>.notchlet</code>; nearest wins unless <code>--workspace</code> is passed.</td></tr>
+            <tr><td>Change directory</td><td><code>.notchlet/changes/&lt;change&gt;/</code> with <code>proposal.json</code>, <code>spec.json</code>, <code>tasks.json</code>, <code>design.md</code>.</td></tr>
+            <tr><td>Machine-local state</td><td><code>.notchlet/.local/</code> — journals, locks, <code>mcp.json</code>, client guidance snapshots. Not shared.</td></tr>
+            <tr><td>Guidance files</td><td><code>AGENTS.md</code>, <code>PROMPT.md</code>, <code>.notchlet/README.md</code> written by initialization.</td></tr>
+            <tr><td>MCP token variable</td><td><code>NOTCHLET_MCP_TOKEN</code> referenced from config; never inlined.</td></tr>
+            <tr><td>Server override</td><td><code>--server &lt;url&gt;</code> or the stored profile (<code>profile use</code>).</td></tr>
+            <tr><td>Skill targets</td><td><code>.opencode/skills</code>, <code>.claude/skills</code>, <code>.agents/skills</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="checklists">Pre-flight checklists</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Before planning</h3>
+          <ul class="small">
+            <li>Product and item resolved and confirmed, or no duplicates locally.</li>
+            <li>Source documents or tickets read.</li>
+            <li>Outcome understood; blocking ambiguity asked, not assumed.</li>
+            <li>Existing changes checked with <code>change list</code>.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Before implementing</h3>
+          <ul class="small">
+            <li>Status is <code>TODO</code> or <code>IN_PROGRESS</code>.</li>
+            <li>Dependencies resolved or marked non-blocking.</li>
+            <li>Acceptance criteria measurable and testable.</li>
+            <li>Package scripts and existing patterns located.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Before completing a task</h3>
+          <ul class="small">
+            <li>The verification evidence exists and is current.</li>
+            <li>Focused checks pass; pre-existing failures documented.</li>
+            <li>Changed files reviewed for secrets and artifacts.</li>
+            <li>No unrelated items modified.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Before delivery</h3>
+          <ul class="small">
+            <li>Review approved or not required.</li>
+            <li>PR or MR verified merged for branch-linked work.</li>
+            <li>Parent stays open while children are open.</li>
+            <li>Explicit authorization for push, merge, status, or deploy.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 id="glossary">Glossary</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>Change</td><td>The local unit of work containing requirements, checks, tasks, run metadata, and evidence.</td></tr>
+            <tr><td>Snapshot</td><td>An immutable synchronized revision of a change on the server.</td></tr>
+            <tr><td>Check</td><td>A declared, runnable observation: command, HTTP probe, UI assertion, or manual attestation.</td></tr>
+            <tr><td>Evidence</td><td>A recorded observation linked to executed checks and selected requirements, scenarios, or tasks.</td></tr>
+            <tr><td>Closure</td><td>Local completion and archival of a change after planning, verification, and policy gates pass.</td></tr>
+            <tr><td>Delivery</td><td>Evaluation of provider state and optional backlog status change, explicitly and idempotently.</td></tr>
+            <tr><td>Capability baseline</td><td>The captured revision against which a standard or delta change is evaluated at closure.</td></tr>
+            <tr><td>Delta operation</td><td>An explicit snapshot of what a change adds, updates, or removes from product capability.</td></tr>
+            <tr><td>Bounded context</td><td>A capped (32 KiB) item context response with scoped cursors for expansion.</td></tr>
+            <tr><td>Bridge</td><td>A stdio MCP process that proxies a client to an authenticated Notchlet server.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

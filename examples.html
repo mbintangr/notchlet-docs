@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Use cases · Notchlet Docs</title>
+<meta name="description" content="End-to-end Notchlet scenarios: offline quick changes, standard features with capability delta, backlog-driven work, resume, revise, visual evidence, review, and MCP setup.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script>try{const t=localStorage.getItem("notchlet-docs-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
+  <span class="version">v1.0.0</span>
+  <div class="header-actions">
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <input id="nav-search" type="search" placeholder="Search topics" aria-label="Search documentation topics" autocomplete="off">
+      <p class="search-empty" role="status">No topics match.</p>
+    </div>
+    <nav class="nav" aria-label="Documentation">
+      <div class="nav-group"><h3>Start</h3><ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="concepts.html">Core concepts</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Reference</h3><ul>
+        <li><a href="cli.html">CLI</a></li>
+        <li><a href="mcp.html">MCP server</a></li>
+        <li><a href="platform.html">Platform</a></li>
+        <li><a href="skills.html">Skills</a></li>
+      </ul></div>
+      <div class="nav-group"><h3>Practice</h3><ul>
+        <li><a href="workflow.html">Development workflow</a></li>
+        <li><a href="examples.html">Use cases</a></li>
+        <li><a href="reference.html">Cheat sheet</a></li>
+      </ul></div>
+    </nav>
+  </aside>
+  <div class="content-wrap">
+    <main class="doc" id="main">
+      <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Practice<span>/</span>Use cases</p>
+      <p class="eyebrow">Practice</p>
+      <h1>Use cases</h1>
+      <p class="lead">Eight worked scenarios, from a no-account quick fix to a connected backlog feature with capability delta and visual evidence. Commands are shown in the order that keeps state valid.</p>
+
+      <h2 id="quick-fix">1. Offline quick fix (no account)</h2>
+      <p>Use a quick change when the work is small, local, and does not alter a shipped capability. The capability declaration is still explicit.</p>
+<pre><code>cd docs-repo
+notchlet init
+
+notchlet change new fix-typo --quick
+notchlet change update fix-typo \
+  --intent "Correct the broken install command." \
+  --outcome "The install section shows a command that succeeds." \
+  --capability-impact none \
+  --capability-rationale "Documentation-only correction; no runtime capability changes."
+
+notchlet change add fix-typo requirement --id R1 \
+  --title "Install command works" --description "The documented command completes successfully."
+notchlet change add fix-typo scenario --id S1 \
+  --when "a reader runs the install command" --then "the CLI prints its version" --requirement R1
+notchlet change add fix-typo check --id C1 \
+  --description "CLI prints a version" --kind command \
+  --command "notchlet --version" --requirement R1 --scenario S1
+notchlet change add fix-typo task --id T1 \
+  --title "Update install section" --requirement R1
+
+notchlet validate fix-typo
+notchlet task start T1 --change fix-typo
+# edit the document
+notchlet verify fix-typo --record
+notchlet task complete T1 --change fix-typo --require-evidence
+notchlet change close fix-typo --preview
+notchlet change close fix-typo</code></pre>
+      <div class="callout ok">
+        <span class="callout-title">Why this shape</span>
+        <p>Quick schema, explicit no-impact rationale, one runnable check, and closure without a capability baseline. No account, MCP, or network is involved.</p>
+      </div>
+
+      <h2 id="standard-feature">2. Standard feature with a capability delta</h2>
+      <p>Use the standard schema when the change alters what the product can do. Capture the capability baseline before authoring delta operations.</p>
+<pre><code>notchlet change new csv-export
+notchlet change update csv-export \
+  --intent "Let users export report tables as CSV." \
+  --outcome "A report page offers CSV export and downloads the visible columns."
+
+notchlet change add csv-export requirement --id R1 \
+  --title "CSV export" --description "Report tables export to CSV with a header row."
+notchlet change add csv-export scenario --id S1 \
+  --when "a user chooses Export CSV" --then "a UTF-8 CSV downloads with the visible columns" --requirement R1
+notchlet change add csv-export decision --id D1 \
+  --decision "Generate CSV in the backend." \
+  --rationale "Keeps formatting, encoding, and access control in one place."
+notchlet change add csv-export check --id C1 \
+  --description "CSV integration test" --kind command \
+  --command "node --test test/export.test.mjs" --requirement R1 --scenario S1
+notchlet change add csv-export check --id C2 \
+  --description "Download endpoint" --kind http \
+  --url "http://127.0.0.1:4173/api/reports/1/export.csv" \
+  --expected-status 200 --expected-header "Content-Type: text/csv" --requirement R1
+notchlet change add csv-export task --id T1 \
+  --title "Backend export endpoint" --requirement R1
+notchlet change add csv-export task --id T2 \
+  --title "Frontend export action" --requirement R1 --depends-on T1
+
+notchlet change baseline csv-export
+notchlet change delta csv-export add --requirement R1 \
+  --rationale "Reports gain a CSV export capability."
+notchlet change render csv-export --write
+notchlet validate csv-export</code></pre>
+<pre><code>notchlet task start T1 --change csv-export
+notchlet task complete T1 --change csv-export
+notchlet task start T2 --change csv-export
+notchlet task complete T2 --change csv-export
+
+notchlet verify csv-export --serve --record --repeat 2
+notchlet evidence list --change csv-export --requirement R1
+notchlet change close csv-export --preview
+notchlet change close csv-export --baseline-revision 1</code></pre>
+      <div class="callout info">
+        <span class="callout-title">Why this shape</span>
+        <p>Standard requirements force full scenario coverage and a design decision. The delta operation snapshots the capability change, and closure names the baseline revision captured before implementation.</p>
+      </div>
+
+      <h2 id="backlog-driven">3. Backlog-driven feature from the platform</h2>
+      <p>When the item already exists, import it instead of retyping requirements. MCP supplies bounded context; the CLI owns local state.</p>
+<pre><code>notchlet workspace info
+# confirm server, product, repository
+
+# optional: read context through MCP in the connected client
+# backlog_get({ itemId: 842 }) or notchlet_backlog_get in OpenCode
+
+notchlet backlog import NOT-142
+notchlet status NOT-142
+notchlet instructions NOT-142 --action plan
+notchlet validate NOT-142
+
+notchlet task start T1 --change NOT-142
+# implement
+notchlet verify NOT-142 --serve --record
+notchlet task complete T1 --change NOT-142 --require-evidence
+
+notchlet checkpoint --change NOT-142 --name "Implementation verified" \
+  --summary "Endpoint and UI done; integration tests pass."</code></pre>
+<pre><code>notchlet change close NOT-142 --preview
+notchlet sync push --change NOT-142
+
+# Delivery is a separate, explicit step after review and merge:
+# development_delivery_create with expectedRevision, operationId,
+# payloadHash, snapshotRevision, and target.</code></pre>
+      <div class="callout warn">
+        <span class="callout-title">Merge is not deployment</span>
+        <p>Before a <code>DONE</code> request for branch-linked work, verify the exact PR or MR is merged and approved. Delivery evaluation does not merge, deploy, or publish anything.</p>
+      </div>
+
+      <h2 id="resume">4. Resume work without restarting</h2>
+      <p>Resume is the default for any continuation. Read state, then continue only eligible tasks.</p>
+<pre><code>cd existing-project
+notchlet change list
+notchlet status checkout-flow
+notchlet instructions checkout-flow --action resume
+
+# The instructions identify the next eligible task and any blockers.
+notchlet task start T3 --change checkout-flow
+notchlet verify checkout-flow --serve --record
+notchlet task complete T3 --change checkout-flow --require-evidence</code></pre>
+      <div class="callout info">
+        <span class="callout-title">Do not replay</span>
+        <p>Do not reinitialize the workspace, recreate the plan, or reconfigure MCP while the existing binding and change remain valid.</p>
+      </div>
+
+      <h2 id="revise">5. Revise requirements mid-change</h2>
+      <p>Requirements change. Preserve stable IDs and existing progress, then revalidate and re-verify.</p>
+<pre><code>notchlet instructions checkout-flow --action revise
+
+notchlet change update checkout-flow requirement R2 \
+  --description "Saved cards may be removed; removal requires confirmation."
+
+notchlet change add checkout-flow scenario --id S4 \
+  --when "a user removes a saved card" --then "removal is confirmed and the card disappears" \
+  --requirement R2
+
+# If the requirement belongs to a declared capability delta, re-author the snapshot.
+notchlet change delta checkout-flow update --requirement R2 \
+  --rationale "Removal confirmation added."
+
+notchlet change render checkout-flow --write
+notchlet validate checkout-flow
+notchlet verify checkout-flow --serve --record</code></pre>
+      <p>Existing task progress is preserved when editing an item in place with <code>change update &lt;change&gt; &lt;kind&gt; &lt;id&gt;</code>. Task status changes still go through <code>task start|complete</code>.</p>
+
+      <h2 id="visual">6. Visual acceptance criteria</h2>
+      <p>For layout, accessibility, or visual behavior, attach a capture to the evidence record. This is separate from the check result and does not replace it.</p>
+<pre><code>notchlet change add checkout-flow check --id C5 \
+  --description "Checkout page renders totals" --kind ui \
+  --url "http://127.0.0.1:4173/checkout" \
+  --expected-text "Order total" --requirement R3
+
+notchlet verify checkout-flow --serve --record \
+  --capture-url "http://127.0.0.1:4173/checkout" \
+  --viewport 1280x800 --wait-for "#totals" --full-page
+# or attach an existing artifact
+notchlet verify checkout-flow --record --attach artifacts/checkout.png</code></pre>
+      <ul>
+        <li><code>--ui-capture on-failure</code> is the default for UI checks; use <code>always</code> or <code>never</code> deliberately.</li>
+        <li>Evidence attachments should contain no credentials, tokens, or production personal data.</li>
+      </ul>
+
+      <h2 id="review">7. Review another agent's change</h2>
+      <p>Review is a gate, not a formality. Inspect the diff and the actual test output, not the summary.</p>
+<pre><code>notchlet status checkout-flow
+notchlet evidence list --change checkout-flow --requirement R1,R2
+notchlet change show checkout-flow
+
+# inspect the diff and run the focused checks yourself
+git diff origin/main...HEAD
+node --test test/checkout.test.mjs</code></pre>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Outcome</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>Approve</td><td>All criteria covered, checks pass, no scope creep. Keep or set <code>IN_REVIEW</code> and let delivery proceed.</td></tr>
+            <tr><td>Request changes</td><td>Comment with specific items on the PR and item. Do not close or set <code>DONE</code>; return to implementation.</td></tr>
+            <tr><td>Dispute</td><td>Discuss on the item comment thread, not private messages. Re-review only the changed files and feedback items.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="mcp-setup">8. Set up MCP from scratch</h2>
+      <h3 id="mcp-opencode">OpenCode, connected</h3>
+<pre><code>notchlet auth login --server https://pg-api.mbintangr.com
+notchlet mcp configure --client opencode
+notchlet mcp status
+notchlet doctor
+# restart OpenCode, then verify the notchlet_* tools appear</code></pre>
+      <h3 id="mcp-claude">Claude Code, connected</h3>
+<pre><code>notchlet auth login --server https://pg-api.mbintangr.com
+notchlet mcp configure --client claude
+notchlet mcp status
+# restart Claude Code; tools appear as mcp__notchlet__*</code></pre>
+      <h3 id="mcp-offline">Offline, no account</h3>
+<pre><code>notchlet init --local --client opencode
+notchlet mcp status
+notchlet mcp serve --local   # the client may start this itself</code></pre>
+      <div class="callout danger">
+        <span class="callout-title">Credential rule</span>
+        <p>Remote configs must reference the token through an environment variable (<code>{env:NOTCHLET_MCP_TOKEN}</code> or <code>${NOTCHLET_MCP_TOKEN}</code>). If you print the token with <code>notchlet mcp token</code>, treat it as a secret: do not paste it into prompts, commits, comments, or evidence.</p>
+      </div>
+      <p>If the client shows no tools, check <code>notchlet mcp status</code>, confirm the config file belongs to the client you are using, and restart the session. Do not probe <code>/mcp</code> with an unauthenticated GET.</p>
+    </main>
+    <aside class="toc" id="toc" aria-label="On this page"></aside>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>

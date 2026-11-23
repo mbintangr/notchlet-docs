@@ -14,7 +14,7 @@
 <header class="site-header">
   <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
-  <span class="version">v1.0.0</span>
+  <span class="version">v1.0.1</span>
   <div class="header-actions">
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
   </div>
@@ -55,11 +55,11 @@
         <table>
           <thead><tr><th>Item</th><th>Value</th></tr></thead>
           <tbody>
-            <tr><td>CLI</td><td><code>@notchlet/cli</code> 1.0.0, installed as <code>notchlet</code></td></tr>
+            <tr><td>CLI</td><td><code>@notchlet/cli</code> 1.0.1, installed as <code>notchlet</code></td></tr>
             <tr><td>Engine</td><td><code>@notchlet/core</code> 1.0.0, reported by <code>notchlet --version</code></td></tr>
             <tr><td>Node.js</td><td>22 or newer</td></tr>
             <tr><td>Default server</td><td><code>https://pg-api.mbintangr.com</code> (override with <code>--server</code>)</td></tr>
-            <tr><td>Docs target</td><td>Commands verified against <code>notchlet --help</code> for CLI 1.0.0</td></tr>
+            <tr><td>Docs target</td><td>Commands verified against <code>notchlet --help</code> for CLI 1.0.1</td></tr>
           </tbody>
         </table>
       </div>
@@ -86,7 +86,7 @@ notchlet change path &lt;change&gt; [artifact]
 notchlet change export &lt;change&gt; [--format json]
 notchlet change restore &lt;change&gt;
 notchlet change convert &lt;change&gt; --schema quick|standard
-notchlet change close &lt;change&gt; --preview
+notchlet change close &lt;change&gt; --preview [--fail-on-blockers]
 notchlet change close &lt;change&gt; [--baseline-revision &lt;n&gt;] [--yes]</code></pre>
 
       <h3 id="cmd-authoring">Authoring</h3>
@@ -98,7 +98,7 @@ notchlet change update &lt;change&gt; requirement R1 --description "..."
 notchlet change add &lt;change&gt; requirement|scenario|decision|check|task [options]
 notchlet change remove &lt;change&gt; &lt;kind&gt; &lt;id&gt; [--revision &lt;n&gt;]
 notchlet change apply &lt;change&gt; --file &lt;plan.json&gt; [--revision &lt;n&gt;]
-notchlet change render &lt;change&gt; --check|--write
+notchlet change render &lt;change&gt; --check|--write [--tree]
 notchlet change baseline &lt;change&gt;
 notchlet change delta &lt;change&gt; add|update|remove|delete --requirement &lt;id&gt; [--rationale "..."]
 notchlet change plan validate &lt;path&gt; | status &lt;change&gt; | sync &lt;change&gt;</code></pre>
@@ -112,6 +112,7 @@ notchlet task update &lt;change&gt; &lt;task&gt; &lt;status&gt; [--force]</code>
       <h3 id="cmd-verify">Verify and evidence</h3>
 <pre><code>notchlet verify &lt;change&gt; [--check C1,C2] [--record] [--requirement R1] [--scenario S1] [--task T1]
 notchlet verify &lt;change&gt; --serve [--repeat 2] [--setup "..."] [--teardown "..."]
+notchlet verify &lt;change&gt; --tree [--record] [--serve]
 notchlet verify &lt;change&gt; --check-setup-idempotence --setup-state &lt;path&gt;
 notchlet verify &lt;change&gt; --record --capture-url &lt;url&gt; [--full-page] [--attach &lt;path&gt;]
 notchlet evidence list --change &lt;change&gt; [--stale] [--failed] [--task T1]
@@ -120,9 +121,13 @@ notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual -
       <h3 id="cmd-sync">Sync, checkpoints, imports</h3>
 <pre><code>notchlet sync mode auto|manual
 notchlet sync status|push|pull --change &lt;change&gt;
+notchlet sync status|push|pull --change &lt;change&gt; --tree
+notchlet sync deliver --change &lt;change&gt; --status DONE [--with-children]
 notchlet sync resolve --change &lt;change&gt; --keep-local
 notchlet checkpoint --change &lt;change&gt; --name &lt;name&gt; [--summary "..."]
 notchlet backlog import &lt;key|title|id&gt; [--product-id &lt;id&gt;]
+notchlet backlog import &lt;ref&gt; --tree [--no-children] [--no-ancestors] [--dry-run]
+notchlet migrate [--dry-run|--apply] [--rename] [--legacy-dir &lt;name&gt;]
 notchlet instructions &lt;change&gt; --action plan|revise|implement|verify|resume
 notchlet client init|update &lt;opencode|claude|agent&gt; --apply</code></pre>
 
@@ -143,9 +148,11 @@ notchlet mcp revoke [--server &lt;url&gt;] [--credential-id &lt;id&gt;] [--yes]<
             <tr><td><code>--revision &lt;n&gt;</code></td><td>Reject stale writes with <code>revision_conflict</code> before anything changes.</td></tr>
             <tr><td><code>--record</code></td><td>Turn an executed verification into evidence. Required to claim coverage.</td></tr>
             <tr><td><code>--serve</code></td><td>Let verification own start, readiness, and shutdown of the app.</td></tr>
+            <tr><td><code>--tree</code></td><td>Verify every open node deepest-first, then by path, or render/sync a whole subtree. Verify exits 1 when any node fails and 2 when no open node has a runnable check.</td></tr>
             <tr><td><code>--repeat &lt;n&gt;</code></td><td>Detect state-dependent failures by rerunning the batch.</td></tr>
             <tr><td><code>--require-evidence</code></td><td>Hard-block task completion without current passed evidence.</td></tr>
             <tr><td><code>--preview</code></td><td>Read-only closure report with recovery commands.</td></tr>
+            <tr><td><code>--fail-on-blockers</code></td><td>With <code>close --preview</code>, exit 1 while blockers remain so CI can gate closure.</td></tr>
             <tr><td><code>--json</code></td><td>Machine envelope for scripting; for verify, read <code>data.result</code>.</td></tr>
             <tr><td><code>--workspace &lt;root&gt;</code></td><td>Select a workspace explicitly instead of the nearest one.</td></tr>
             <tr><td><code>--dry-run</code></td><td>Validate a plan import without writing.</td></tr>
@@ -167,6 +174,8 @@ notchlet mcp revoke [--server &lt;url&gt;] [--credential-id &lt;id&gt;] [--yes]<
           </tbody>
         </table>
       </div>
+      <p class="small"><code>--expected-json</code> compares a length-strict recursive subset. <code>--expected-json-contains</code> allows extra object keys and unordered extra array items, but an empty expected array proves the observed array is empty; it does not match a non-empty array. Use <code>--expected-json-at</code> for explicit path predicates such as counts and scalar ranges.</p>
+      <p class="small">Tree verification runs runnable nodes deepest-first, then by path, and reports the run order plus each node's observation basis. It does not isolate workspace, environment, or external application state; use per-node setup/teardown or separate data directories for stateful checks. It skips archived nodes, bare rollups, and nodes with only manual checks, exits 1 when a node fails, and exits 2 when no open node has a runnable check.</p>
 
       <h2 id="schemas">Change schemas</h2>
       <div class="grid-2">

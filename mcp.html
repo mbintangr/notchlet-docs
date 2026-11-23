@@ -14,7 +14,7 @@
 <header class="site-header">
   <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
-  <span class="version">v1.0.0</span>
+  <span class="version">v1.0.1</span>
   <div class="header-actions">
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
   </div>
@@ -58,7 +58,7 @@
         </div>
         <div class="card">
           <h3>Authorized operations</h3>
-          <p>Comments, description edits with <code>expectedDescriptionRevision</code>, development change reads and creation, snapshot upload, instructions, checkpoints, and delivery evaluation.</p>
+          <p>Comments, description edits with <code>expectedDescriptionRevision</code>, development change reads and creation, snapshot upload, instructions, checkpoints, delivery evaluation, and product creation with the <code>products:write</code> scope.</p>
         </div>
         <div class="card">
           <h3>Server-evaluated instructions</h3>
@@ -101,7 +101,8 @@ notchlet mcp configure --client claude   --transport remote --server https://pg-
 notchlet mcp configure --client opencode --local
 notchlet mcp serve --local</code></pre>
       <p>The local server advertises workspace-scoped tools with a <code>notchlet_</code> prefix:</p>
-      <p class="small"><code>notchlet_change_list</code>, <code>notchlet_change_get</code>, <code>notchlet_change_create</code>, <code>notchlet_change_update</code>, <code>notchlet_change_add</code>, <code>notchlet_change_remove</code>, <code>notchlet_change_apply</code>, <code>notchlet_change_render</code>, <code>notchlet_change_baseline</code>, <code>notchlet_change_delta</code>, <code>notchlet_task_transition</code>, <code>notchlet_verify</code>, <code>notchlet_evidence_record</code>, <code>notchlet_evidence_list</code>, <code>notchlet_instructions</code>, <code>notchlet_workspace_status</code>.</p>
+      <p class="small"><code>notchlet_change_list</code>, <code>notchlet_change_tree</code>, <code>notchlet_change_get</code>, <code>notchlet_change_create</code>, <code>notchlet_change_update</code>, <code>notchlet_change_add</code>, <code>notchlet_change_remove</code>, <code>notchlet_change_apply</code>, <code>notchlet_change_render</code>, <code>notchlet_change_baseline</code>, <code>notchlet_change_delta</code>, <code>notchlet_task_transition</code>, <code>notchlet_verify</code>, <code>notchlet_evidence_record</code>, <code>notchlet_evidence_list</code>, <code>notchlet_instructions</code>, <code>notchlet_workspace_status</code>.</p>
+      <p>Every change reference accepts an ID, an exact name, or the relative hierarchy path (for example <code>user-auth/login-form</code>). <code>notchlet_change_tree</code> returns derived status, counts, and the subtree; <code>notchlet_change_create</code> accepts <code>changeType</code> (<code>epic</code>, <code>story</code>, <code>task</code>, <code>subtask</code>) plus optional <code>parent</code>, <code>title</code>, and <code>slug</code> to scaffold backlog nodes. Task authoring and transitions on a rollup node return <code>rollup_node</code>.</p>
       <p>The remote registry exposes bare names and may include additional development tools that are not deployed on every server. Always call the exact names returned by <code>tools/list</code>.</p>
 
       <h2 id="client-config">Client configuration shapes</h2>
@@ -183,7 +184,7 @@ notchlet mcp serve --local</code></pre>
           <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
           <tbody>
             <tr><td><code>development_capabilities</code></td><td>Report supported development operations and embedded core version.</td></tr>
-            <tr><td><code>development_changes_list</code> / <code>development_change_get</code></td><td>Discover and read synchronized development changes.</td></tr>
+            <tr><td><code>development_changes_list</code> / <code>development_change_get</code></td><td>Discover and read synchronized development changes. <code>development_changes_list</code> accepts an optional <code>backlogItemId</code> (positive integer) to scope results to one backlog item, alongside <code>productId</code>, <code>limit</code>, and <code>cursor</code>.</td></tr>
             <tr><td><code>development_change_create</code></td><td>Create a remote change record.</td></tr>
             <tr><td><code>development_snapshot_upload</code></td><td>Upload a local snapshot; expects an exact change revision.</td></tr>
             <tr><td><code>development_snapshots_list</code> / <code>development_snapshot_get</code></td><td>Inspect synchronized revisions.</td></tr>
@@ -194,6 +195,12 @@ notchlet mcp serve --local</code></pre>
           </tbody>
         </table>
       </div>
+
+      <h3 id="product-tools">Product and backlog authoring</h3>
+      <ul>
+        <li><code>product_create({ teamId, name, slug?, description? })</code> — create a product on an existing team. Requires the <code>products:write</code> scope, which is opt-in: it is <em>not</em> part of the default agent scopes and must be granted explicitly. The team-scoped slug is the idempotency key: a duplicate surfaces a conflict so the existing product is adopted.</li>
+        <li><code>backlog_create</code> / <code>backlog_update</code> — author backlog items with <code>priorityLevel</code>, <code>storyPoints</code>, <code>startDate</code>, and <code>dueDate</code> (ISO date-times), with description edits still guarded by <code>expectedDescriptionRevision</code>.</li>
+      </ul>
 
       <h3 id="delivery">Delivery evaluation</h3>
       <p><code>development_delivery_create</code> requires <code>changeId</code>, <code>expectedRevision</code>, <code>operationId</code>, <code>payloadHash</code>, <code>snapshotRevision</code>, and <code>target</code>, plus optional <code>backlogStatus</code>, <code>repositoryRef</code>, and <code>summary</code>. Setting <code>backlogStatus</code> additionally requires the <code>backlog:write</code> scope.</p>
@@ -218,7 +225,7 @@ notchlet mcp serve --local</code></pre>
         <li><code>notchlet mcp token</code> prints the generated credential only when explicitly invoked. Treat the output as a secret and never paste it into prompts, config, or evidence.</li>
         <li>Store it in the environment variable the config references; rotate with <code>notchlet mcp revoke</code> and reconfigure.</li>
         <li><code>notchlet mcp disconnect</code> removes this project's entry; add <code>--revoke</code> to revoke the credential as well.</li>
-        <li>MCP credentials are scoped. A scoped token is not an account session and cannot create interactive credentials.</li>
+        <li>MCP credentials are scoped. A scoped token is not an account session and cannot create interactive credentials. The REST <code>/products</code> and <code>/git/connect</code> routes require a user session; under MCP bearer auth they fail with <code>user_auth_required</code>. Use the <code>product_create</code> tool (with the <code>products:write</code> scope) or <code>notchlet workspace bind --create</code> with a user login instead.</li>
         <li>Remote writes are revision- and operation-checked. Unsynchronized local edits never appear in remote snapshots.</li>
       </ul>
 

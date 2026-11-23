@@ -14,7 +14,7 @@
 <header class="site-header">
   <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
-  <span class="version">v1.0.0</span>
+  <span class="version">v1.0.1</span>
   <div class="header-actions">
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
   </div>
@@ -62,6 +62,10 @@ notchlet init --local --client opencode   # local mode plus skills and local MCP
         <thead><tr><th>Path</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>.notchlet/changes/&lt;change&gt;/</code></td><td>The change model and its artifacts: canonical <code>proposal.json</code>, <code>spec.json</code>, state <code>tasks.json</code>, and authored <code>design.md</code>.</td></tr>
+          <tr><td><code>.notchlet/changes/&lt;epic&gt;/&lt;story&gt;/&lt;task&gt;/</code></td><td>Backlog-shaped nodes. Every node is a full change with its own artifacts; a directory without <code>tasks.json</code> is an implicit container. Folders use <code>key-slug</code> after a platform link, otherwise <code>slug</code>.</td></tr>
+          <tr><td><code>.notchlet/changes/&lt;node&gt;/backlog.json</code></td><td>Backlog sidecar: item type, title, platform linkage, and sync state. Children are derived from the filesystem, never stored in the sidecar or in <code>tasks.json</code>.</td></tr>
+          <tr><td><code>.notchlet/changes/legacy/&lt;id&gt;/</code></td><td>Namespace for flat changes re-homed by <code>notchlet migrate</code>. Linked flat changes move under their local platform tree instead; both keep their full change data.</td></tr>
+          <tr><td><code>.notchlet/archive/&lt;relative-path&gt;/</code></td><td>Closed nodes mirrored at their original hierarchy path. Close children before their parent; archive merges preserve already-closed descendants.</td></tr>
           <tr><td><code>.notchlet/.local/</code></td><td>Machine-local state: sync journals, close journal and lock, <code>mcp.json</code>, and client guidance snapshots. Never shared; excluded from evidence fingerprints.</td></tr>
           <tr><td><code>AGENTS.md</code>, <code>PROMPT.md</code>, <code>.notchlet/README.md</code></td><td>Guidance written during initialization so agents know how to use the workspace.</td></tr>
           <tr><td><code>.notchlet/changes/&lt;change&gt;/design.md</code></td><td>Authored design narrative; the canonical model stays authoritative.</td></tr>
@@ -122,7 +126,7 @@ notchlet change add my-change task --id T1 \
         <thead><tr><th>Kind</th><th>Behavior</th><th>Assertions</th></tr></thead>
         <tbody>
           <tr><td><code>command</code></td><td>Runs a shell command in the workspace or a declared working directory.</td><td>Exit code; non-zero fails. Output is recorded.</td></tr>
-          <tr><td><code>http</code></td><td>Probes a URL.</td><td><code>--expected-status</code>, <code>--expected-body-contains</code>, JSON subset/containment/path, headers.</td></tr>
+          <tr><td><code>http</code></td><td>Probes a URL.</td><td><code>--expected-status</code>, <code>--expected-body-contains</code>, JSON subset/containment/path (empty containment arrays require empty observed arrays), headers.</td></tr>
           <tr><td><code>ui</code></td><td>Browser-level assertions against a served page.</td><td>Visibility, enabled state, title, scoped text, declarative interactions; captures archived on failure by default.</td></tr>
           <tr><td><code>browser</code></td><td>Legacy alias that runs as an HTTP probe.</td><td>HTTP assertions.</td></tr>
           <tr><td><code>manual</code></td><td>Reported as skipped during execution.</td><td>Requires separately recorded evidence.</td></tr>

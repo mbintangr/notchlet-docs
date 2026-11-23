@@ -14,7 +14,7 @@
 <header class="site-header">
   <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
-  <span class="version">v1.0.0</span>
+  <span class="version">v1.0.1</span>
   <div class="header-actions">
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
   </div>
@@ -143,6 +143,18 @@
         <span class="callout-title">Local and remote are not the same state</span>
         <p>Remote snapshots never include unsynchronized local edits. Use <code>notchlet sync push</code> to publish a snapshot, and review divergence before resolving it.</p>
       </div>
+      <h3 id="development-panel">The development change panel</h3>
+      <p>The product's development panel renders the latest synchronized snapshot package for an item's linked change:</p>
+      <ul>
+        <li><strong>Requirements and design decisions</strong> declared in the snapshot, with the change intent and outcome.</li>
+        <li><strong>Tasks</strong> with per-task status and eligible-task guidance from server-computed planning state.</li>
+        <li><strong>Acceptance scenarios</strong> — When/Then pairs with the requirement each scenario covers. Absent arrays render "not declared in this snapshot".</li>
+        <li><strong>Checks</strong> — kind (<code>command</code>, <code>http</code>, <code>ui</code>, <code>manual</code>), the command or URL to run, the expectation, and the linked requirement, scenario, and task IDs.</li>
+        <li><strong>Server-computed blockers and state</strong> — planning blockers with recovery guidance, plus local closure and remote delivery status with the supporting evidence IDs.</li>
+        <li><strong>Evidence provenance and freshness</strong> — each evidence item's outcome, provenance, staleness against the snapshot, and live-checkout freshness (remote snapshots cannot verify the local checkout).</li>
+        <li><strong>CLI resume guidance</strong> — the exact <code>notchlet instructions</code> resume command and the bind/rebind setup for the matching checkout.</li>
+      </ul>
+      <p>The panel lists only changes linked to the open backlog item (server-filtered by <code>backlogItemId</code>), and everything it shows is synchronized server state — it never reflects unsynchronized local edits. Author local planning detail with <code>notchlet change add</code> and <code>notchlet backlog set</code>, then publish with <code>sync push --tree --yes</code>.</p>
 
       <h2 id="statuses">Statuses and completion</h2>
       <table class="table-wrap">

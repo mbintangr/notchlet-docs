@@ -14,7 +14,7 @@
 <header class="site-header">
   <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
-  <span class="version">v1.0.0</span>
+  <span class="version">v1.0.1</span>
   <div class="header-actions">
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
   </div>
@@ -48,12 +48,12 @@
       <p class="breadcrumbs"><a href="index.html">Docs</a><span>/</span>Reference<span>/</span>CLI</p>
       <p class="eyebrow">Reference</p>
       <h1>Notchlet CLI</h1>
-      <p class="lead">The CLI owns local change state: authoring, revisions, tasks, verification, evidence, closure, and explicit synchronization. It reports <code>notchlet 1.0.0 · @notchlet/core 1.0.0</code> and requires Node.js 22 or newer.</p>
+      <p class="lead">The CLI owns local change state: authoring, revisions, tasks, verification, evidence, closure, and explicit synchronization. It reports <code>notchlet 1.0.1 · @notchlet/core 1.0.0</code> and requires Node.js 22 or newer.</p>
 
       <h2 id="install">Install and verify</h2>
 <pre><code>npm install -g @notchlet/cli
 notchlet --version
-# notchlet 1.0.0 · @notchlet/core 1.0.0
+# notchlet 1.0.1 · @notchlet/core 1.0.0
 
 # or without a global install
 npx @notchlet/cli --version</code></pre>
@@ -71,7 +71,8 @@ npx @notchlet/cli --version</code></pre>
             <tr><td><code>notchlet init [path] [--local|--interactive]</code></td><td>Create a workspace. Local-only by default. <code>--client opencode|claude</code> also installs skills and local MCP config.</td></tr>
             <tr><td><code>notchlet auth login --server &lt;url&gt;</code></td><td>Log in and store a profile. Add <code>--allow-file-token-store</code> only where appropriate.</td></tr>
             <tr><td><code>notchlet auth status</code> · <code>auth logout</code> · <code>profile use --server &lt;url&gt;</code></td><td>Inspect, remove, or switch authentication profiles.</td></tr>
-            <tr><td><code>notchlet workspace bind --server &lt;url&gt; [--product &lt;name&gt;] [--repository &lt;name&gt;] [--rebind]</code></td><td>Bind the checkout to a product and repository. Prefer names; the server resolves them.</td></tr>
+            <tr><td><code>notchlet workspace bind --server &lt;url&gt; [--product &lt;name&gt;] [--repository &lt;name&gt;] [--rebind]</code></td><td>Bind the checkout to an existing product and repository. Prefer names; the server resolves them.</td></tr>
+            <tr><td><code>workspace bind --create --name &lt;product&gt; [--org &lt;name|id&gt;] [--team &lt;name|id&gt;] [--slug &lt;slug&gt;] [--description &lt;text&gt;] [--remote &lt;name&gt;] [--provider GITHUB|GITLAB] [--repo-label &lt;text&gt;] [--dry-run] [--rebind]</code></td><td>Bootstrap product and repository from the CLI. Requires an authenticated <em>user</em> session and an existing team; the checkout's Git remote is connected automatically. <code>--create</code> is the explicit authorization for the product/repository writes; <code>--dry-run</code> resolves and prints the plan with zero POSTs.</td></tr>
             <tr><td><code>notchlet workspace info</code></td><td>Show the current binding and workspace configuration.</td></tr>
             <tr><td><code>notchlet doctor</code></td><td>Diagnose workspace, binding, server connectivity, and authenticated capabilities.</td></tr>
           </tbody>
@@ -81,6 +82,10 @@ npx @notchlet/cli --version</code></pre>
         <span class="callout-title">Bootstrap only when required</span>
         <p>Use the nearest existing workspace. Run <code>notchlet init</code> only when a workspace is genuinely missing and the user approves it; there is no separate bootstrap command.</p>
       </div>
+      <div class="callout info">
+        <span class="callout-title">Product create is idempotent by slug</span>
+        <p><code>bind --create</code> derives a team-scoped slug from <code>--name</code> unless <code>--slug</code> is given. An exact name or slug match adopts the existing product; a <code>409</code> conflict re-lists by team and slug and adopts the single match. The create is journaled under <code>.notchlet/.local/bootstrap/</code> before the POST, so an uncertain response is resolved by lookup, never a blind retry. The Git remote URL is normalized to a credential-free HTTPS URL; no access token is sent and the webhook secret is never printed. Organization and team creation stays platform-only.</p>
+      </div>
 
       <h2 id="changes">Change lifecycle commands</h2>
       <div class="table-wrap">
@@ -88,20 +93,24 @@ npx @notchlet/cli --version</code></pre>
           <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
           <tbody>
             <tr><td><code>change new &lt;name&gt; [--quick]</code></td><td>Create an active change. Without <code>--quick</code> it uses the standard schema.</td></tr>
+            <tr><td><code>change new &lt;name&gt; --as epic|story|task|subtask [--parent &lt;ref&gt;] [--title &lt;text&gt;] [--slug &lt;slug&gt;]</code></td><td>Scaffold a backlog node as a full change. Types must nest EPIC &gt; STORY &gt; TASK &gt; SUBTASK; the node inherits a <code>backlog.json</code> sidecar and an unlinked sync state.</td></tr>
             <tr><td><code>change new &lt;name&gt; --from &lt;plan.json&gt; [--dry-run] [--no-render] [--markdown]</code></td><td>Import a declarative plan. <code>--dry-run</code> validates without writing.</td></tr>
+            <tr><td><code>change new --from &lt;tree.json&gt; [--dry-run] [--no-render] [--markdown]</code></td><td>Import a validated backlog tree in one transaction. Dry runs mark each node <code>create</code>, <code>reuse</code>, or <code>conflict</code>; reruns reuse nodes at the same path with the same type and title.</td></tr>
+            <tr><td><code>change tree [&lt;ref&gt;] [--depth &lt;n&gt;]</code></td><td>Show the backlog hierarchy, or one node's subtree, with derived status and the next eligible leaf.</td></tr>
             <tr><td><code>change list [--archived]</code></td><td>List active changes, or archived changes.</td></tr>
             <tr><td><code>change show &lt;name|id&gt;</code></td><td>Show content, capability, and readiness details.</td></tr>
-            <tr><td><code>status [&lt;name|id&gt; | --change &lt;name|id&gt;]</code></td><td>Planning, execution, verification, and closure state.</td></tr>
+            <tr><td><code>status [&lt;name|id&gt; | --change &lt;name|id&gt;] [--tree]</code></td><td>Planning, execution, verification, and closure state; <code>--tree</code> adds the backlog hierarchy and counts.</td></tr>
             <tr><td><code>validate &lt;name|id&gt;</code></td><td>Check planning readiness and list blockers.</td></tr>
-            <tr><td><code>change path &lt;name|id&gt; [artifact]</code></td><td>Print the change directory or a declared artifact path.</td></tr>
+            <tr><td><code>change path &lt;name|id&gt; [artifact] [--relative|--absolute]</code></td><td>Print the change directory or a declared artifact path, optionally as one form.</td></tr>
             <tr><td><code>change export &lt;name|id&gt; [--format json]</code></td><td>Export metadata, closure, evidence, and artifacts.</td></tr>
             <tr><td><code>change restore &lt;name|id&gt;</code></td><td>Restore an archived change to active work.</td></tr>
             <tr><td><code>change convert &lt;name|id&gt; --schema quick|standard</code></td><td>Convert schemas; revision-checked.</td></tr>
-            <tr><td><code>change close &lt;name|id&gt; --preview</code></td><td>Read-only closure report with recovery commands.</td></tr>
-            <tr><td><code>change close &lt;name|id&gt; [--baseline-revision &lt;n&gt;] [--yes]</code></td><td>Close and archive. Baseline revision is required for standard and delta changes.</td></tr>
+            <tr><td><code>change close &lt;name|id&gt; --preview [--fail-on-blockers]</code></td><td>Read-only closure report with recovery commands; <code>--fail-on-blockers</code> exits 1 while blockers remain.</td></tr>
+            <tr><td><code>change close &lt;name|id&gt; [--baseline-revision &lt;n&gt;] [--yes] [--accept-artifact-basis] [--markdown] [--accept-plan-drift]</code></td><td>Close and archive. Baseline revision is required for standard and delta changes. <code>--accept-artifact-basis</code> records closure when current evidence binds change artifacts but not application source.</td></tr>
           </tbody>
         </table>
       </div>
+      <p>Verification records a Git observation when the workspace is a repository. A non-Git workspace records a bounded source fingerprint with each evidence item (hashes only; metadata, dependencies, environment files, and credentials are excluded), so source edits stale evidence without Git. <code>change close --preview</code> prints <code>Source binding</code>: <em>source bound</em> means every current check observes either Git or that workspace fingerprint; <em>source unbound</em> means legacy or artifact-only evidence. Unbound current evidence blocks closure with <code>artifact_basis_unacknowledged</code> until you either re-record checks after binding source or pass <code>--accept-artifact-basis</code>; an accepted close records <code>acceptedArtifactBasis: true</code> in the closure manifest.</p>
 
       <h2 id="authoring">Authoring commands and flags</h2>
 <pre><code>notchlet change update &lt;change&gt; --intent "..." --outcome "..."
@@ -122,7 +131,7 @@ notchlet change apply &lt;change&gt; --file &lt;plan.json&gt; [--revision &lt;n&
             <tr><td><code>--command</code>, <code>--working-directory</code></td><td>check</td><td>Executable command and workspace-relative directory.</td></tr>
             <tr><td><code>--kind</code></td><td>check</td><td><code>command</code>, <code>http</code>, <code>browser</code>, <code>ui</code>, <code>manual</code>.</td></tr>
             <tr><td><code>--url</code>, <code>--expected-status</code></td><td>http check</td><td>Probe target and expected status.</td></tr>
-            <tr><td><code>--expected-body-contains</code>, <code>--expected-json</code>, <code>--expected-json-contains</code>, <code>--expected-json-at</code>, <code>--expected-header</code></td><td>http check</td><td>Body, JSON subset/containment/path, and header assertions.</td></tr>
+            <tr><td><code>--expected-body-contains</code>, <code>--expected-json</code>, <code>--expected-json-contains</code>, <code>--expected-json-at</code>, <code>--expected-header</code></td><td>http check</td><td>Body, JSON subset/containment/path, and header assertions. <code>--expected-json</code> is length-strict; <code>--expected-json-contains</code> allows extra keys and unordered items, but an empty expected array requires an empty observed array.</td></tr>
             <tr><td><code>--requirement</code>, <code>--scenario</code>, <code>--task</code></td><td>scenario, check, task</td><td>Cross-links. IDs accept comma-separated lists.</td></tr>
             <tr><td><code>--depends-on</code></td><td>task</td><td>Dependency IDs for ordered completion.</td></tr>
             <tr><td><code>--decision</code>, <code>--rationale</code></td><td>decision, delta</td><td>Design choice and reasoning.</td></tr>
@@ -138,10 +147,13 @@ notchlet change apply &lt;change&gt; --file &lt;plan.json&gt; [--revision &lt;n&
 <pre><code>notchlet change render &lt;change&gt; --check    # report artifact drift
 notchlet change render &lt;change&gt; --write    # rewrite from the model; bumps revision once
 notchlet change render &lt;change&gt; --write --force   # overwrite unmarked hand-authored files
+notchlet change render &lt;change&gt; --tree --write  # render every open node in the subtree
+notchlet change render &lt;change&gt; --tree --check  # report drift across the subtree
 notchlet change plan validate &lt;plan.json&gt;
 notchlet change plan status &lt;change&gt;
 notchlet change plan sync &lt;change&gt;       # accept the current plan hash after review</code></pre>
       <p>Declared <code>proposal.md</code> and <code>spec.md</code> views render from the model. Generated files carry a marker; <code>--write</code> refuses unmarked hand-authored files unless you pass <code>--force</code>. Use <code>notchlet schema</code> to list or print shipped JSON schemas.</p>
+      <p>Plan provenance tracks both single-change plans and backlog tree plans. A change imported from a tree keeps the tree file as its source plan, so <code>change plan status</code> validates the whole tree and reports a node that was removed or renamed as drift; closure follows the same rule and records the drift decision in <code>closure.json</code>.</p>
 
       <h2 id="tasks">Task commands</h2>
       <div class="table-wrap">
@@ -159,7 +171,9 @@ notchlet change plan sync &lt;change&gt;       # accept the current plan hash af
       <h2 id="verify">Verification and evidence</h2>
 <pre><code>notchlet verify &lt;change&gt; [--check C1,C2] [--record] [--requirement R1] [--task T1]
 notchlet verify &lt;change&gt; --serve [--repeat 2] [--setup "node seed.mjs"] [--teardown "..."]
+notchlet verify &lt;parent&gt; --tree [--record] [--serve]
 notchlet verify &lt;change&gt; --record --capture-url http://127.0.0.1:4173/ --full-page
+notchlet change add &lt;change&gt; check --id C1 --description "Register is ready" --kind ui --url http://127.0.0.1:4173/ --wait-for "#app" --expected-visible-selector "#product-grid" --expected-hidden-selector "#receipt-dialog"
 notchlet evidence list --change &lt;change&gt; [--check C1] [--requirement R1] [--task T1] [--stale] [--failed]
 notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual --outcome passed</code></pre>
       <table class="table-wrap">
@@ -167,6 +181,7 @@ notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual -
         <tbody>
           <tr><td><code>--serve</code></td><td>Start the declared run command, wait for readiness, run checks, then stop the server.</td></tr>
           <tr><td><code>--serve-command</code></td><td>Start a different command than the change run metadata.</td></tr>
+          <tr><td><code>--tree</code></td><td>Verify every open node with its own checks, deepest-first then by path. Skips archived nodes, bare rollups with no runnable checks, and nodes with only manual checks; prints the run order and observation basis. Failed nodes name the failed check IDs, assertions, failure phase, evidence log path, and single-node recovery. Applies runtime flags per node, exits 1 when any node fails, and exits 2 when no open node has a runnable check; an archived-only subtree reports <code>no_open_nodes</code> with a <code>change restore</code> recovery.</td></tr>
           <tr><td><code>--repeat &lt;n&gt;</code></td><td>Rerun the batch (including setup) and report state-dependent failures.</td></tr>
           <tr><td><code>--check-setup-idempotence --setup-state &lt;path&gt;</code></td><td>Fail when setup does not reproduce the declared state.</td></tr>
           <tr><td><code>--reuse-serve</code></td><td>Target an existing server; setup is skipped.</td></tr>
@@ -180,6 +195,19 @@ notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual -
         <span class="callout-title">Prefer an owned run</span>
         <p><code>--serve</code> gives the run a known start state. Reusing a server can hide drift, and repeated runs detect state-dependent failures that a single green run misses.</p>
       </div>
+      <div class="callout info">
+        <span class="callout-title">Verifying a tree</span>
+        <p>Use <code>verify &lt;parent&gt; --tree</code> to run every open node's own checks with its persisted setup and serve command. Nodes run deepest-first, then by path; this is a deterministic run order, not task dependency order. Tree runs share the workspace, environment, and external app or data state, so stateful checks should reset state with per-node setup/teardown or isolated data directories. The output prints the run order, aggregate observation basis, and each child's basis, advisories, artifact drift, and render recovery. A failed node also prints its failed check IDs, failed assertions, failure phase, evidence log path, and single-node recovery, so the failure is diagnosable without rerunning the leaf. An archived-only subtree exits 2 with <code>no_open_nodes</code> and points to <code>change restore</code> instead of suggesting a new check on an archived leaf. If the nodes share one running app instead, start it once with <code>verify &lt;node&gt; --serve --keep-running</code>, then verify nodes individually with <code>--reuse-serve</code> (setup is skipped) and stop the app yourself. <code>--tree</code> applies <code>--ui-capture</code>, <code>--full-page</code>, <code>--settle-ms</code>, browser/viewport, and runtime flags to every node, but rejects per-check selection and assertion overrides, setup and serve overrides, and <code>--capture-url</code>/<code>--attach</code>; verify a single node for those.</p>
+      </div>
+      <div class="callout info">
+        <span class="callout-title">Presence is not visibility</span>
+        <p><code>--expected-selector</code> only proves markup exists; hidden dialogs and <code>display: none</code> panels still match. Prove the rendered state with <code>--expected-visible-selector</code>, <code>--expected-hidden-selector</code>, and <code>--expected-enabled-selector</code>.</p>
+      </div>
+      <div class="callout warn">
+        <span class="callout-title">Hidden also means absent</span>
+        <p><code>--expected-hidden-selector</code> passes when the element is present but not rendered, and also when it is not in the DOM at all. The assertion reports <code>hidden</code> or <code>absent</code> so the difference stays visible. A check that only asserts hidden selectors treats absence as deliberate and emits no hint. When a check also asserts positive rendered state, verify hints if a hidden pass came from absence; pair it with <code>--expected-selector</code> on the same selector when hidden-but-present is required.</p>
+        <p><code>--expected-absent-selector</code> asserts strict DOM absence: present-but-hidden fails. Use it for removed dialogs or permission-gated controls. A change whose only check asserts hidden or absent elements raises a <code>hidden_only_sole_check</code> advisory, because a blank page could pass; add a positive visibility or text assertion.</p>
+      </div>
 
       <h2 id="sync">Sync, checkpoints, and imports</h2>
       <div class="table-wrap">
@@ -188,13 +216,25 @@ notchlet evidence record --change &lt;change&gt; --summary "..." --kind manual -
           <tbody>
             <tr><td><code>sync mode auto|manual</code></td><td>Set the synchronization preference.</td></tr>
             <tr><td><code>sync status|push|pull --change &lt;change&gt;</code></td><td>Inspect or transfer a synchronized snapshot.</td></tr>
+            <tr><td><code>sync status|push|pull --change &lt;change&gt; --tree</code></td><td>Walk the local subtree (ancestors first on push). Each node gets or adopts its own backlog item and development change; re-running is idempotent. Without <code>--yes</code>, push is a <em>preview</em>: it resolves every node and reports the planned backlog create/update and snapshot push while making zero writes.</td></tr>
+            <tr><td><code>sync deliver --change &lt;change&gt; --status DONE [--with-children]</code></td><td>Explicit, bottom-up delivery. Local task completion never marks a backlog item <code>DONE</code> by itself.</td></tr>
+            <tr><td><code>sync pull --change &lt;change&gt; --tree [--import-new]</code></td><td>Apply remote snapshots (conflict-guarded), refresh observed platform fields, and report remote-only children. <code>--import-new</code> additionally scaffolds those children locally under the correct parent (ancestors and children included, bounded to 200 items); without it the report is read-only and <code>--dry-run</code> scaffolds nothing.</td></tr>
+            <tr><td><code>backlog set &lt;ref&gt; [--title &lt;text&gt;] [--description &lt;text&gt;] [--priority LOW|MEDIUM|HIGH|URGENT] [--points &lt;n&gt;] [--start &lt;iso&gt;] [--due &lt;iso&gt;]</code></td><td>Author planning fields in the local <code>backlog.json</code> sidecar only; no remote write. <code>sync push --tree --yes</code> publishes the authored values. Description is create-only unless set explicitly here.</td></tr>
             <tr><td><code>sync resolve --change &lt;change&gt; --keep-local</code></td><td>Resolve divergence after reviewing local artifacts.</td></tr>
             <tr><td><code>checkpoint --change &lt;change&gt; --name &lt;name&gt; [--summary] [--backlog-status ...]</code></td><td>Record a synchronized checkpoint; not delivery evidence by itself.</td></tr>
             <tr><td><code>backlog import &lt;item-key|title|id&gt; [--product-id &lt;id&gt;]</code></td><td>Import a backlog item as a change; product is inferred from the binding.</td></tr>
+            <tr><td><code>backlog import &lt;ref&gt; --tree [--no-children] [--no-ancestors] [--max-items &lt;n&gt;] [--mode quick|standard] [--dry-run]</code></td><td>Import the platform hierarchy as nested changes with <code>backlog.json</code> sidecars. Mid-level imports scaffold ancestor shells; re-import reuses nodes by backlog item ID.</td></tr>
+            <tr><td><code>migrate [--dry-run|--apply] [--rename] [--legacy-dir &lt;name&gt;]</code></td><td>Preview or apply re-homing of flat legacy changes under <code>legacy/</code> (unlinked) or the local linked tree. Journaled, resumable, and never overwrites; dry run is the default.</td></tr>
             <tr><td><code>instructions &lt;change&gt; --action plan|revise|implement|verify|resume</code></td><td>Get stage-specific workflow guidance for the change.</td></tr>
             <tr><td><code>client init|update &lt;agent&gt; --apply</code></td><td>Install or refresh generated skills for <code>opencode</code>, <code>claude</code>, or <code>agent</code>.</td></tr>
           </tbody>
         </table>
+      </div>
+      <h3 id="planning-sync">Planning fields, sidecar v2, and divergence</h3>
+      <p>Linked backlog nodes reconcile planning fields (title, description, priority, points, start/due) three ways against the sidecar's <code>sync</code> baselines: remote == baseline and local changed means push; local == baseline and remote changed means adopt into <code>platform</code> observations on pull; both changed differently is a <code>field_divergence</code> warning — the field is skipped and reported, never silently overwritten. Description updates carry an expected revision so a concurrent platform edit fails closed. The sidecar schema is v2 (v1 files still read and upgrade lazily); older CLIs reject v2 with <code>unsupported_version</code> and an upgrade hint.</p>
+      <div class="callout warn">
+        <span class="callout-title">Resolution is explicit</span>
+        <p>A divergence is resolved by pulling and adopting the remote value or re-applying the local one with <code>backlog set</code> — never by force-overwrite.</p>
       </div>
 
       <h2 id="mcp-commands">MCP commands</h2>

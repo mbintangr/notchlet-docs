@@ -14,7 +14,7 @@
 <header class="site-header">
   <button class="icon-button" id="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <a class="brand" href="index.html"><img src="assets/logo.svg" alt=""><span>Notchlet Docs</span><span class="brand-sub">/ documentation</span></a>
-  <span class="version">v1.0.0</span>
+  <span class="version">v1.0.1</span>
   <div class="header-actions">
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme">◐</button>
   </div>
@@ -83,11 +83,23 @@ notchlet workspace info</code></pre>
         <li>Import only when no matching local change exists:</li>
       </ol>
 <pre><code>notchlet backlog import NOT-123
+notchlet backlog import NOT-123 --tree --dry-run
+notchlet backlog import NOT-123 --tree
 notchlet status NOT-123
 notchlet instructions NOT-123 --action plan</code></pre>
+      <p><code>--tree</code> follows platform children with cursors and scaffolds ancestor shells for mid-level items. Each imported node keeps its own change, and a re-import reuses nodes by backlog item ID. Locally authored trees push in the same order: parents first, then children, adopting a matching platform item instead of duplicating it. Final status changes are explicit and bottom-up:</p>
+<pre><code>notchlet sync push --change user-auth --tree --yes
+notchlet sync pull --change user-auth --tree
+notchlet sync deliver --change user-auth --status DONE --with-children</code></pre>
+      <p>Local task completion and checkpoints never set a backlog item to <code>DONE</code>; delivery is the only status target that does. Flat changes written before the hierarchy existed remain readable. Preview <code>notchlet migrate</code> to see how unlinked changes would move under <code>legacy/</code> and how linked flat changes would re-home under the tree, then apply when the plan is acceptable.</p>
       <h3 id="local-work">Local-only work</h3>
-<pre><code>notchlet change new my-change            # standard
-notchlet change new my-spike --quick     # quick, no-impact work</code></pre>
+<pre><code>notchlet change new user-auth --as epic
+notchlet change new login --as story --parent user-auth
+notchlet change new login-form --as task --parent user-auth/login
+notchlet change tree
+notchlet status user-auth/login --tree</code></pre>
+      <p>Every backlog node is a full change, so the same checks, evidence, verify, and close flow applies at the leaf. Author leaf work — tasks and their requirements, scenarios, checks, intent, and outcome — on the leaves in one pass: create requirements and tasks first, then add each check with <code>--requirement</code>, <code>--scenario</code>, and <code>--task</code> together. Verify warns when checks have no task link, because unlinked evidence may not satisfy task completion. A parent is a rollup whose acceptance is its closed children, so it needs no leaf planning content of its own; it may declare optional acceptance checks, which must be current before it closes. Flat legacy changes remain readable and can live alongside trees.</p>
+      <p>Import a whole validated tree with <code>notchlet change new --from tree.json --dry-run</code>. The plan nests <code>itemType</code> nodes with an optional <code>plan</code> per node; all nodes are type-checked and path-checked before any directory is written, and a failed import rolls back the nodes it created. Reruns are idempotent: a node already at the same path with the same type and title is reused, so re-importing does not duplicate work. Imported nodes keep the tree file as their plan provenance, so <code>change plan status</code> validates the whole tree and flags a node that was removed or renamed in it.</p>
       <p>Check for an existing change first with <code>change list</code>. Reuse and refine instead of duplicating.</p>
 
       <h2 id="phase-2">Phase 2 — Plan to Definition of Ready</h2>
@@ -118,7 +130,13 @@ notchlet change add my-change check --id C1 \
 notchlet change add my-change task --id T1 \
   --title "Implement endpoint" --requirement R1
 
-notchlet validate my-change</code></pre>
+notchlet validate my-change
+notchlet change render my-change --write</code></pre>
+      <p>Render model-derived artifacts before verifying so verification and closure observe current canonical files. Plain <code>--write</code> updates drifted generated artifacts, but refuses hand-authored files without the generated-content marker; review those and add <code>--force</code> only when replacing them is intended.</p>
+      <div class="callout info">
+        <span class="callout-title">Rollups delegate acceptance</span>
+        <p>Intent, outcome, and requirements are leaf obligations. A parent with children is validated as a rollup: unfinished leaf planning on the parent is not a blocker, and its closure acceptance is the set of closed child closures. Rollups may declare optional acceptance checks; any declared rollup check must still be current before it closes. Closed rollup manifests record the accepted child closures, including their paths, hashes, and verification status. EPIC and STORY scaffolding seeds intent and outcome so the narrative is never silently blank; a rollup with both blank still closes, but the preview prints an advisory. Closure stores the authored intent and outcome as <code>narrative</code> in <code>closure.json</code> and prints <code>Intent</code>/<code>Outcome</code> in <code>closure.md</code>. Each closed parent also records descendant totals — nodes, leaves, requirements, checks, current evidence, and completed tasks — in <code>closure.json</code> and <code>closure.md</code> without changing the direct child records.</p>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Schema</th><th>Additional planning requirements</th></tr></thead>
@@ -158,6 +176,7 @@ notchlet task complete T1 --change my-change --require-evidence</code></pre>
 <pre><code>notchlet verify my-change --serve --record
 notchlet verify my-change --serve --repeat 2         # detect state-dependent failures
 notchlet verify my-change --record --capture-url http://127.0.0.1:4173/ --full-page
+notchlet verify user-auth --tree --serve --record   # every open node, bottom-up
 notchlet evidence list --change my-change --task T1</code></pre>
       <div class="table-wrap">
         <table>
@@ -172,8 +191,16 @@ notchlet evidence list --change my-change --task T1</code></pre>
         </table>
       </div>
       <ul>
-        <li>Use <code>--setup</code>, <code>--save-setup</code>, and <code>--check-setup-idempotence</code> when state must be reset or reproduced.</li>
+        <li>Git repositories bind evidence to a repository identity and tracked/untracked source digest; <code>.notchlet</code>, dependencies, build output, environment files, and credentials are excluded. A non-Git workspace binds each evidence item to a bounded workspace source fingerprint (hashes only), so ordinary source edits still stale it. Legacy evidence without a Git observation or fingerprint stays fresh but source-unbound.</li>
+        <li>Closure preview prints <code>Source binding</code>. If current evidence is source-unbound, closure blocks with <code>artifact_basis_unacknowledged</code>: re-record checks after binding source, or pass <code>change close --accept-artifact-basis</code> to record the artifact-only decision explicitly in the closure manifest.</li>
+      </ul>
+      <ul>
+        <li>Use <code>--setup</code>, <code>--save-setup</code>, and <code>--check-setup-idempotence</code> when state must be reset or reproduced. Setup runs before checks; when it also starts the app, verify recognizes that listener instead of starting a second one.</li>
         <li>Prefer an owned <code>--serve</code> run; <code>--reuse-serve</code> can hide drift and skips setup.</li>
+        <li>Use <code>--tree</code> to verify every open node with its own checks and persisted run metadata. Nodes run deepest-first, then by path; the output names that run order and the observation basis. Runtime flags such as <code>--record</code>, <code>--serve</code>, <code>--timeout</code>, <code>--environment</code>, <code>--repeat</code>, <code>--ui-capture</code>, and <code>--full-page</code> apply to every node. Archived nodes, bare rollups with no runnable checks, and nodes with only manual checks are skipped; manual checks still need separately recorded evidence. Failed nodes name the failed check IDs, failed assertions, failure phase, evidence log path, and single-node recovery. The command exits 1 when any node fails and 2 when no open node has a runnable check; an archived-only subtree exits 2 with <code>no_open_nodes</code> and a <code>change restore</code> recovery. Per-check selection and assertion overrides, setup and serve overrides, and <code>--capture-url</code>/<code>--attach</code> are rejected with <code>--tree</code>; verify a single node for those.</li>
+        <li>Tree runs are not hermetic: nodes share the workspace, environment, and any external app or data they touch, and the deepest-first order is not the same as task dependency order. Reset state with each node's own setup/teardown or isolated data directories when checks are stateful.</li>
+        <li>UI checks distinguish perception from presence. <code>--expected-hidden-selector</code> passes for hidden or absent elements, <code>--expected-absent-selector</code> requires true DOM absence, and <code>--expected-visible-selector</code> proves the intended view rendered. A sole check that only asserts hidden or absent state raises a <code>hidden_only_sole_check</code> advisory; add a positive assertion or a second check.</li>
+        <li>If all nodes share one running app, start it once with <code>verify &lt;node&gt; --serve --keep-running</code> and verify the other nodes individually with <code>--reuse-serve</code>; stop the app yourself when finished.</li>
         <li>Recovery commands printed by the CLI must be run deliberately; they are never applied automatically.</li>
       </ul>
 
@@ -218,10 +245,13 @@ notchlet evidence list --change my-change --task T1</code></pre>
       <h2 id="phase-6">Phase 6 — Close and deliver</h2>
       <p>Closure preview is read-only and reports every dimension separately:</p>
 <pre><code>notchlet change close my-change --preview
+notchlet change close my-change --preview --fail-on-blockers   # CI gate; exits 1 on blockers
 notchlet change close my-change                          # quick no-impact changes
+notchlet change close my-change --yes                    # skip the confirmation prompt
 notchlet change close my-change --baseline-revision 3    # standard and delta changes</code></pre>
       <ul>
         <li>Standard and delta changes require the captured baseline revision. Quick no-impact changes close without one.</li>
+        <li><code>--preview</code> exits 0 by default so the report is inspectable; add <code>--fail-on-blockers</code> when CI should fail while blockers remain.</li>
         <li>Every blocker includes a recovery command or recovery tool; run it deliberately.</li>
         <li>Local closure is not remote delivery. Delivery evaluates existing provider state and does not merge or deploy.</li>
         <li>For branch-linked work, a <code>DONE</code> request requires the exact linked PR or MR to be merged and approved.</li>
